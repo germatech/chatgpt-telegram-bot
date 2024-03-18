@@ -48,7 +48,10 @@
         "ask_chatgpt":"Ask ChatGPT",
         "loading":"Loading...",
         "function_unavailable_in_inline_mode": "This function is unavailable in inline mode",
-        "chat_modes": ""
+        "chat_modes": "",
+        "payments": "\uD83D\uDC7B Choose payment method: ⚡\uFE0F Pay-as-You-Go System ⚡\uFE0F",
+        "payments_description": "Pay in crypto",
+        "redeem_no_prompt": "Add your redeem, EX: /redeem ADSCV675NMJ8"
     },
     "es": {
         "help_description":"Muestra el mensaje de ayuda",
