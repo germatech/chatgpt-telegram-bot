@@ -45,10 +45,13 @@ from utils import (
     handle_direct_result,
     cleanup_intermediate_files,
     get_paginated_keyboard,
+    replace_placeholders,
+    get_payments_buttons
 )
 from openai_helper import OpenAIHelper, localized_text
 from usage import UsageTracker
 from config import chat_modes, BotConfig
+from messages.payment import SUBSCRIPTION_MESSAGE, PAYMENT_MESSAGE, PAYMENT_LINK
 
 
 class ChatGPTTelegramBot:
@@ -86,6 +89,10 @@ class ChatGPTTelegramBot:
                 command="brains",
                 description=localized_text("brains_description", bot_language),
             ),
+            BotCommand(
+                command="payments",
+                description=localized_text("payments_description", bot_language)
+            )
         ]
         # If imaging is enabled, add the "image" command to the list
         if self.config.enable_image_generation:
@@ -1134,6 +1141,68 @@ class ChatGPTTelegramBot:
                 reply_to_message_id=get_reply_to_message_id(self.config, update),
                 text=f"{localized_text('chat_fail', self.config.bot_language)} {str(e)}",
                 parse_mode=constants.ParseMode.MARKDOWN,
+            )
+
+    async def redeem(self, update:Update, context: ContextTypes.DEFAULT_TYPE):
+
+        redeem_query = message_text(update.message)
+        if redeem_query == "":
+            await update.effective_message.reply_text(
+                message_thread_id=get_thread_id(update),
+                text=localized_text("redeem_no_prompt", self.config.bot_language),
+            )
+            return
+
+        user = update.message.from_user
+        user_id: int = user.id
+        ex_user_id: str = ""
+        if len(redeem_query) < 16:
+            await update.message.reply_text(
+                f"your redeem card looks shorter than usual, please try again later"
+            )
+        elif len(redeem_query) > 16:
+            await update.message.reply_text(
+                "your redeem card looks longer than usual, please try again later"
+            )
+        await update.message.reply_text(
+            f"your redeem card is {redeem_query}, I will add this balance to {user.first_name} account"
+        )
+        _, resp = await payment_switcher(
+            user_id=user_id, redeem_card=redeem_query, user_payment_choice="anis-usdt"
+        )
+        # TODO test this really important
+        if resp["success"]:
+            amount = resp["amount"]
+            identity_no = resp["identityNo"]
+            match = re.match(r"(\d+)", identity_no.split("-")[0])
+            if match:
+                if match.group(0) != "redeem":
+                    raise ValueError(f"Invalid identity number: {identity_no}")
+                ex_user_id = match.group(1)
+            logging.info(f"User ID: {ex_user_id}")
+            if ex_user_id == user_id:
+                await db.update_user_subscription_on_payment(user_id=ex_user_id, amount=amount,
+                                                             payment_type="anis-usdt")
+            else:
+                raise ValueError("Invalid user")
+        pass
+
+    async def payment_handle(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        user_id = update.effective_user.id
+        bot_language = self.config.bot_language
+        # Since we're not handling the callback queries anymore,
+        # we only proceed if it's not a callback query
+        if not update.callback_query:
+            text = f"{localized_text('payments', bot_language=bot_language)}"
+
+            # Create subscription buttons
+            button_text, reply_markup = await get_payments_buttons()
+
+            # Send the message with buttons
+            await update.message.reply_text(
+                text,
+                parse_mode=ParseMode.HTML,
+                reply_markup=reply_markup,  # Include the reply_markup with buttons
             )
 
     async def inline_query(

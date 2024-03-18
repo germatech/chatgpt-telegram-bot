@@ -20,7 +20,7 @@ from telegram import (
 from telegram.ext import CallbackContext, ContextTypes
 
 from usage import UsageTracker
-from config import chat_modes, BotConfig
+from config import chat_modes, BotConfig, plans
 
 
 def message_text(message: Message) -> str:
@@ -32,8 +32,8 @@ def message_text(message: Message) -> str:
         return ""
 
     for _, text in sorted(
-        message.parse_entities([MessageEntity.BOT_COMMAND]).items(),
-        key=(lambda item: item[0].offset),
+            message.parse_entities([MessageEntity.BOT_COMMAND]).items(),
+            key=(lambda item: item[0].offset),
     ):
         message_txt = message_txt.replace(text, "").strip()
 
@@ -41,7 +41,7 @@ def message_text(message: Message) -> str:
 
 
 async def is_user_in_group(
-    update: Update, context: CallbackContext, user_id: int
+        update: Update, context: CallbackContext, user_id: int
 ) -> bool:
     """
     Checks if user_id is a member of the group
@@ -113,15 +113,15 @@ def split_into_chunks(text: str, chunk_size: int = 4096) -> list[str]:
     """
     Splits a string into chunks of a given size.
     """
-    return [text[i : i + chunk_size] for i in range(0, len(text), chunk_size)]
+    return [text[i: i + chunk_size] for i in range(0, len(text), chunk_size)]
 
 
 async def wrap_with_indicator(
-    update: Update,
-    context: CallbackContext,
-    coroutine,
-    chat_action: constants.ChatAction = "",
-    is_inline=False,
+        update: Update,
+        context: CallbackContext,
+        coroutine,
+        chat_action: constants.ChatAction = "",
+        is_inline=False,
 ):
     """
     Wraps a coroutine while repeatedly sending a chat action to the user.
@@ -141,12 +141,12 @@ async def wrap_with_indicator(
 
 
 async def edit_message_with_retry(
-    context: ContextTypes.DEFAULT_TYPE,
-    chat_id: int | None,
-    message_id: str,
-    text: str,
-    markdown: bool = True,
-    is_inline: bool = False,
+        context: ContextTypes.DEFAULT_TYPE,
+        chat_id: int | None,
+        message_id: str,
+        text: str,
+        markdown: bool = True,
+        is_inline: bool = False,
 ):
     """
     Edit a message with retry logic in case of failure (e.g. broken markdown)
@@ -193,7 +193,7 @@ async def error_handler(_: object, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 
 async def is_allowed(
-    config: BotConfig, update: Update, context: CallbackContext, is_inline=False
+        config: BotConfig, update: Update, context: CallbackContext, is_inline=False
 ) -> bool:
     """
     Checks if the user is allowed to use the bot.
@@ -284,7 +284,7 @@ def get_user_budget(config: BotConfig, user_id) -> float | None:
 
 
 async def get_remaining_budget(
-    config: BotConfig, usage, update: Update, is_inline=False
+        config: BotConfig, usage, update: Update, is_inline=False
 ) -> float:
     """
     Calculate the remaining budget for a user based on their current usage.
@@ -329,7 +329,7 @@ async def get_remaining_budget(
 
 
 async def is_within_budget(
-    config: BotConfig, usage, update: Update, is_inline=False
+        config: BotConfig, usage, update: Update, is_inline=False
 ) -> bool:
     """
     Checks if the user reached their usage limit.
@@ -357,7 +357,7 @@ async def is_within_budget(
 
 
 async def add_chat_request_to_usage_tracker(
-    usage, config: BotConfig, user_id, used_tokens
+        usage, config: BotConfig, user_id, used_tokens
 ):
     """
     Add chat request to usage tracker
@@ -470,7 +470,7 @@ def encode_image(fileobj):
 
 
 def decode_image(imgbase64):
-    image = imgbase64[len("data:image/jpeg;base64,") :]
+    image = imgbase64[len("data:image/jpeg;base64,"):]
     return base64.b64decode(image)
 
 
@@ -481,10 +481,10 @@ def get_paginated_keyboard(page_index):
     chat_mode_keys = list(chat_modes.keys())
     if chat_mode_keys:
         page_chat_mode_keys = chat_mode_keys[
-            page_index
-            * n_chat_modes_per_page : (page_index + 1)
-            * n_chat_modes_per_page
-        ]
+                              page_index
+                              * n_chat_modes_per_page: (page_index + 1)
+                                                       * n_chat_modes_per_page
+                              ]
 
         keyboard = []
         for chat_mode_key in page_chat_mode_keys:
@@ -539,3 +539,84 @@ def get_paginated_keyboard(page_index):
         return text, reply_markup
     else:
         raise ValueError("chat modes list is empty or None")
+
+
+async def get_payments_buttons():
+    text = "Buy Now"
+    buttons = []
+
+    for model_key in plans["plan"]:
+        button_text = model_key
+        buttons.append(
+            InlineKeyboardButton(button_text, callback_data=f"payments|{model_key}")
+        )
+
+    # Divide buttons into rows of 3 buttons each
+    button_rows = [buttons[i: i + 3] for i in range(0, len(buttons), 3)]
+
+    reply_markup = InlineKeyboardMarkup(button_rows)
+    return text, reply_markup
+
+
+def replace_placeholders(obj, replacements):
+    if isinstance(obj, dict):
+        for key, value in obj.items():
+            obj[key] = replace_placeholders(value, replacements)
+    elif isinstance(obj, list):
+        obj = [replace_placeholders(item, replacements) for item in obj]
+    elif isinstance(obj, str):
+        for placeholder, actual_value in replacements.items():
+            obj = obj.replace(placeholder, str(actual_value))
+    return obj
+
+
+def payment_switcher(
+    user_id: int,
+    user_payment_choice: str,
+    payment_plan: str | None = None,
+    redeem_card: str | None = None,
+):
+    match user_payment_choice:
+        case "crypto":
+            return cryptomus_invoice(user_id=user_id, payment_plan=payment_plan)
+        case "libyan-payment":
+            return "Sorry it's not available yet"
+        case "visa-master":
+            return "Sorry it's not available at the moment"
+        case "anis-usdt":
+            if redeem_card:
+                return anis_redeem(redeem_code=redeem_card, user_id=user_id)
+            else:
+                raise ValueError("the redeem card is missing")
+        case "gx-cards":
+            return "Sorry it's not available at the moment"
+        case "donation":
+            return "Sorry it's not available at the moment"
+
+def cryptomus_invoice(user_id: int, payment_plan: str):
+    crypto = CryptomusManager()
+    try:
+        logger.debug("Cryptomus Activated ...")
+        url, order_id = crypto.create_invoice(
+            user_id=user_id, payment_method=payment_plan
+        )
+        return url, order_id
+    except Exception as e:
+        logger.error(f"An error with cryptomus method for some reason: {e}")
+        raise
+
+
+def anis_redeem(redeem_code: str, user_id: int):
+    anis = RedeemManager()
+    try:
+        resp = anis.anis_redeem_code(redeem_code=redeem_code, user_id=user_id)
+        if resp["coin"] != "USDT":
+            coin = resp["coin"]
+            amount = resp["amount"]
+            coin_price = anis.exchange_price(coin=f"{coin}USDT")
+            resp["coin"] = "USDT"
+            resp["amount"] = amount * coin_price
+        return None, resp
+    except Exception as e:
+        logger.error(f"An error with binance redeem method for some reason: {e}")
+        raise

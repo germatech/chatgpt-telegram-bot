@@ -13,6 +13,10 @@ config_dir = Path(__file__).parent.parent.resolve() / "bot/resources"
 with open(config_dir / "chat_modes.yml", "r") as f:
     chat_modes = yaml.safe_load(f)
 
+config_dir = Path(__file__).parent.parent.resolve() / "bot/resources"
+with open(config_dir / "plans.yml", "r") as f:
+    plans = yaml.safe_load(f)
+
 # Models can be found here: https://platform.openai.com/docs/models/overview
 GPT_3_MODELS = ("gpt-3.5-turbo-0125",)
 GPT_4_VISION_MODELS = ("gpt-4-vision-preview",)
@@ -71,6 +75,7 @@ class BotConfig:
         self.proxy = os.environ.get("PROXY", None) or os.environ.get(
             "OPENAI_PROXY", None
         )
+        self.env = os.getenv("ENV", False)
         self.max_history_size = int(os.environ.get("MAX_HISTORY_SIZE", 15))
         self.max_conversation_age_minutes = int(
             os.environ.get("MAX_CONVERSATION_AGE_MINUTES", 180)
