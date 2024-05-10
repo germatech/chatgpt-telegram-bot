@@ -3,9 +3,10 @@ from __future__ import annotations
 import asyncio
 import itertools
 import json
-import logging
 import os
+import re
 import base64
+import logging
 
 import telegram
 from telegram import (
@@ -19,6 +20,8 @@ from telegram import (
 )
 from telegram.ext import CallbackContext, ContextTypes
 
+from cryptomus_client import CryptomusManager
+from ains_client import RedeemManager
 from usage import UsageTracker
 from config import chat_modes, BotConfig, plans
 
@@ -258,7 +261,7 @@ def get_user_budget(config: BotConfig, user_id) -> float | None:
     """
 
     # no budget restrictions for admins and '*'-budget lists
-    if is_admin(config, user_id) or config.user_budgets == "*":
+    if is_admin(config, user_id):
         return float("inf")
 
     user_budgets = config.user_budgets.split(",")
@@ -295,6 +298,7 @@ async def get_remaining_budget(
     :return: The remaining budget for the user as a float
     """
     # Mapping of budget period to cost period
+
     budget_cost_map = {
         "monthly": "cost_month",
         "daily": "cost_today",
@@ -312,8 +316,12 @@ async def get_remaining_budget(
     if user_id not in usage:
         usage[user_id] = UsageTracker.create(user_id, name)
 
+    if is_admin(config, user_id):
+        return float("inf")
+
     # Get budget for users
-    user_budget = get_user_budget(config, user_id)
+    # user_budget = get_user_budget(config, user_id)
+    user_budget = usage[user_id].get_balance(status="active")
     budget_period = config.budget_period
     if user_budget is not None:
         cost = usage[user_id].get_current_cost()[budget_cost_map[budget_period]]
@@ -570,39 +578,40 @@ def replace_placeholders(obj, replacements):
     return obj
 
 
+def extract_user_id(s):
+    match = re.search(r"-(\d+)-", s)
+    return match.group(1) if match else None
+
+
 def payment_switcher(
-    user_id: int,
-    user_payment_choice: str,
-    payment_plan: str | None = None,
-    redeem_card: str | None = None,
+        user_id: int,
+        user_name: str,
+        user_payment_choice: str,
+        payment_plan: str | None = None,
+        redeem_card: str | None = None,
 ):
     match user_payment_choice:
         case "crypto":
-            return cryptomus_invoice(user_id=user_id, payment_plan=payment_plan)
-        case "libyan-payment":
-            return "Sorry it's not available yet"
-        case "visa-master":
-            return "Sorry it's not available at the moment"
+            return cryptomus_invoice(user_id=user_id, user_name=user_name, payment_plan=payment_plan)
         case "anis-usdt":
             if redeem_card:
                 return anis_redeem(redeem_code=redeem_card, user_id=user_id)
             else:
                 raise ValueError("the redeem card is missing")
-        case "gx-cards":
-            return "Sorry it's not available at the moment"
         case "donation":
             return "Sorry it's not available at the moment"
 
-def cryptomus_invoice(user_id: int, payment_plan: str):
+
+def cryptomus_invoice(user_id: int, user_name: str, payment_plan: str):
     crypto = CryptomusManager()
     try:
-        logger.debug("Cryptomus Activated ...")
+        logging.debug("Cryptomus Activated ...")
         url, order_id = crypto.create_invoice(
-            user_id=user_id, payment_method=payment_plan
+            user_id=user_id, user_name=user_name, payment_method=payment_plan
         )
         return url, order_id
     except Exception as e:
-        logger.error(f"An error with cryptomus method for some reason: {e}")
+        logging.error(f"An error with cryptomus method for some reason: {e}")
         raise
 
 
@@ -618,5 +627,5 @@ def anis_redeem(redeem_code: str, user_id: int):
             resp["amount"] = amount * coin_price
         return None, resp
     except Exception as e:
-        logger.error(f"An error with binance redeem method for some reason: {e}")
+        logging.error(f"An error with binance redeem method for some reason: {e}")
         raise

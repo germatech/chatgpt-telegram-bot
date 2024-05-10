@@ -65,7 +65,7 @@ def main():
     application.add_handler(CommandHandler("help", telegram_bot.help))
     application.add_handler(CommandHandler("image", telegram_bot.image))
     application.add_handler(CommandHandler("tts", telegram_bot.tts))
-    application.add_handler(CommandHandler("start", telegram_bot.help))
+    application.add_handler(CommandHandler("start", telegram_bot.start))
     application.add_handler(CommandHandler("stats", telegram_bot.stats))
     application.add_handler(CommandHandler("resend", telegram_bot.resend))
     application.add_handler(CommandHandler("brains", telegram_bot.get_chat_modes))
