@@ -14,12 +14,6 @@ from telegram import InputTextMessageContent, BotCommand
 from telegram.constants import ParseMode
 from telegram.error import RetryAfter, TimedOut, BadRequest
 from telegram.ext import (
-    ApplicationBuilder,
-    CommandHandler,
-    MessageHandler,
-    filters,
-    InlineQueryHandler,
-    CallbackQueryHandler,
     Application,
     ContextTypes,
     CallbackContext,
@@ -45,6 +39,7 @@ from utils import (
     handle_direct_result,
     cleanup_intermediate_files,
     get_paginated_keyboard,
+    get_payments_buttons,
 )
 from openai_helper import OpenAIHelper, localized_text
 from usage import UsageTracker
@@ -67,12 +62,16 @@ class ChatGPTTelegramBot:
         bot_language = self.config.bot_language
         self.commands = [
             BotCommand(
-                command="help",
-                description=localized_text("help_description", bot_language),
+                command="reset",
+                description=localized_text("help_commands", bot_language)[0],
             ),
             BotCommand(
-                command="reset",
-                description=localized_text("reset_description", bot_language),
+                command="brains",
+                description=localized_text("help_commands", bot_language)[2],
+            ),
+            BotCommand(
+                command="payments",
+                description=localized_text("help_commands", bot_language)[1],
             ),
             BotCommand(
                 command="stats",
@@ -83,8 +82,8 @@ class ChatGPTTelegramBot:
                 description=localized_text("resend_description", bot_language),
             ),
             BotCommand(
-                command="brains",
-                description=localized_text("brains_description", bot_language),
+                command="help",
+                description=localized_text("help_commands", bot_language)[5],
             ),
         ]
         # If imaging is enabled, add the "image" command to the list
@@ -116,15 +115,47 @@ class ChatGPTTelegramBot:
         self.last_message = {}
         self.inline_queries_cache = {}
 
+    async def start(self, update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
+        """
+        Shows the start menu.
+        """
+        bot_language = self.config.bot_language
+
+        start_text = (
+            localized_text("start_description", bot_language)[0]
+            + "\n\n"
+            + localized_text("start_description", bot_language)[1]
+            + "\n\n"
+            + localized_text("start_how_to_use_me", bot_language)[0]
+            + "\n"
+            + localized_text("start_how_to_use_me", bot_language)[1]
+            + "\n"
+            + localized_text("start_how_to_use_me", bot_language)[2]
+            + "\n"
+            + localized_text("start_how_to_use_me", bot_language)[3]
+            + "\n"
+            + localized_text("start_how_to_use_me", bot_language)[4]
+            + "\n\n"
+            + localized_text("start_privacy", bot_language)[0]
+            + "\n"
+            + localized_text("start_privacy", bot_language)[1]
+            + "\n\n"
+            + localized_text("start_lets_start", bot_language)[0]
+            + "\n"
+            + localized_text("start_lets_start", bot_language)[1]
+        )
+        await update.message.reply_text(start_text, disable_web_page_preview=True)
+
     async def help(self, update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
         """
         Shows the help menu.
         """
+        bot_language = self.config.bot_language
+        more_info = localized_text("more_info", bot_language)
         commands = self.group_commands if is_group_chat(update) else self.commands
         commands_description = [
             f"/{command.command} - {command.description}" for command in commands
         ]
-        bot_language = self.config.bot_language
         help_text = (
             localized_text("help_text", bot_language)[0]
             + "\n\n"
@@ -132,7 +163,7 @@ class ChatGPTTelegramBot:
             + "\n\n"
             + localized_text("help_text", bot_language)[1]
             + "\n\n"
-            + localized_text("help_text", bot_language)[2]
+            + "\n".join(info for info in more_info)
         )
         await update.message.reply_text(help_text, disable_web_page_preview=True)
 
@@ -904,6 +935,7 @@ class ChatGPTTelegramBot:
                         parse_mode=constants.ParseMode.MARKDOWN,
                     )
             vision_token_price = self.config.vision_token_price
+            logging.info(f"the vision token price {vision_token_price}, and the total tokens are: {total_tokens}")
             self.usage[user_id].add_vision_tokens(total_tokens, vision_token_price)
 
             allowed_user_ids = self.config.allowed_user_ids.split(",")
@@ -1134,6 +1166,68 @@ class ChatGPTTelegramBot:
                 reply_to_message_id=get_reply_to_message_id(self.config, update),
                 text=f"{localized_text('chat_fail', self.config.bot_language)} {str(e)}",
                 parse_mode=constants.ParseMode.MARKDOWN,
+            )
+
+    # async def redeem(self, update:Update, context: ContextTypes.DEFAULT_TYPE):
+    #
+    #     redeem_query = message_text(update.message)
+    #     if redeem_query == "":
+    #         await update.effective_message.reply_text(
+    #             message_thread_id=get_thread_id(update),
+    #             text=localized_text("redeem_no_prompt", self.config.bot_language),
+    #         )
+    #         return
+    #
+    #     user = update.message.from_user
+    #     user_id: int = user.id
+    #     ex_user_id: str = ""
+    #     if len(redeem_query) < 16:
+    #         await update.message.reply_text(
+    #             f"your redeem card looks shorter than usual, please try again later"
+    #         )
+    #     elif len(redeem_query) > 16:
+    #         await update.message.reply_text(
+    #             "your redeem card looks longer than usual, please try again later"
+    #         )
+    #     await update.message.reply_text(
+    #         f"your redeem card is {redeem_query}, I will add this balance to {user.first_name} account"
+    #     )
+    #     _, resp = await payment_switcher(
+    #         user_id=user_id, redeem_card=redeem_query, user_payment_choice="anis-usdt"
+    #     )
+    #     # TODO test this really important
+    #     if resp["success"]:
+    #         amount = resp["amount"]
+    #         identity_no = resp["identityNo"]
+    #         match = re.match(r"(\d+)", identity_no.split("-")[0])
+    #         if match:
+    #             if match.group(0) != "redeem":
+    #                 raise ValueError(f"Invalid identity number: {identity_no}")
+    #             ex_user_id = match.group(1)
+    #         logging.info(f"User ID: {ex_user_id}")
+    #         if ex_user_id == user_id:
+    #             await db.update_user_subscription_on_payment(user_id=ex_user_id, amount=amount,
+    #                                                          payment_type="anis-usdt")
+    #         else:
+    #             raise ValueError("Invalid user")
+    #     pass
+
+    async def payment_handle(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        user_id = update.effective_user.id
+        bot_language = self.config.bot_language
+        # Since we're not handling the callback queries anymore,
+        # we only proceed if it's not a callback query
+        if not update.callback_query:
+            text = f"{localized_text('payments', bot_language=bot_language)}"
+
+            # Create subscription buttons
+            button_text, reply_markup = await get_payments_buttons()
+
+            # Send the message with buttons
+            await update.message.reply_text(
+                text,
+                parse_mode=ParseMode.HTML,
+                reply_markup=reply_markup,  # Include the reply_markup with buttons
             )
 
     async def inline_query(

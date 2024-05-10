@@ -46,6 +46,8 @@ class UsageTracker:
                 {"user_id": self.user_id, "user_name": self.user_name}
             ).execute()
 
+            self.add_balance(status="active", amount=0.5, payment_method="free-plan")
+
         # Initialize or fetch current cost from 'current_costs' table
         self.current_cost = self.initialize_or_fetch_current_cost()
 
@@ -103,7 +105,7 @@ class UsageTracker:
             self.supabase.table("usage_history").insert(empty_history).execute()
             return empty_history
 
-    def add_chat_tokens(self, tokens, tokens_price=0.002):
+    def add_chat_tokens(self, tokens, tokens_price=0.03):
         """
         Adds used tokens from a request to a user's usage history and updates current cost.
         :param tokens: total tokens used in last request
@@ -125,7 +127,9 @@ class UsageTracker:
             usage_history = usage_history[0]
             chat_tokens = usage_history.get("chat_tokens", {})
             chat_tokens[today] = chat_tokens.get(today, 0) + tokens
-
+            # update the user balance
+            resp = self.balance_consuming(token_cost)
+            logging.info(f"users new balance is {resp}")
             # Update the usage_history in the database
             self.supabase.table("usage_history").update(
                 {"chat_tokens": chat_tokens}
@@ -211,12 +215,12 @@ class UsageTracker:
             }
             self.supabase.table("current_costs").insert(new_cost_record).execute()
 
-    def add_image_request(self, image_size, image_prices="0.016,0.018,0.02"):
+    def add_image_request(self, image_size, image_prices="0.016,0.018,0.08"):
         """
         Add image request to users usage history and update current costs.
         :param image_size: requested image size
         :param image_prices: prices for images of sizes ["256x256", "512x512", "1024x1024"],
-                             defaults to [0.016, 0.018, 0.02]
+                             defaults to [0.016, 0.018, 0.08]
         """
         sizes = ["256x256", "512x512", "1024x1024"]
         requested_size = sizes.index(image_size)
@@ -240,6 +244,10 @@ class UsageTracker:
             current_day_images = number_images.get(today, [0, 0, 0])
             current_day_images[requested_size] += 1
             number_images[today] = current_day_images
+            self.add_current_costs(image_cost)
+            # update the user balance
+            resp = self.balance_consuming(image_cost)
+            logging.info(f"users new balance is {resp}")
 
             # Update the usage_history in the database
             self.supabase.table("usage_history").update(
@@ -285,15 +293,15 @@ class UsageTracker:
 
         return usage_day, usage_month
 
-    def add_vision_tokens(self, tokens, vision_token_price=0.01):
+    def add_vision_tokens(self, tokens, vision_token_price=0.03):
         """
         Adds requested vision tokens to a user's usage history and updates current cost.
         :param tokens: total tokens used in last request
         :param vision_token_price: price per 1K tokens transcription, defaults to 0.01
         """
         today = date.today().isoformat()
-        token_cost = round(tokens * vision_token_price / 1000, 2)
-        self.add_current_costs(token_cost)
+        token_cost = round(tokens * vision_token_price / 1000, 5)
+        logging.info(f"token cost {token_cost}")
 
         # Fetch and update usage history
         usage_history = (
@@ -307,7 +315,10 @@ class UsageTracker:
             usage_history = usage_history[0]
             vision_tokens = usage_history.get("vision_tokens", {})
             vision_tokens[today] = vision_tokens.get(today, 0) + tokens
-
+            self.add_current_costs(token_cost)
+            # update the user balance
+            resp = self.balance_consuming(token_cost)
+            logging.info(f"users new balance is {resp}")
             # Update the usage_history in the database
             self.supabase.table("usage_history").update(
                 {"vision_tokens": vision_tokens}
@@ -375,6 +386,10 @@ class UsageTracker:
             tts_characters[tts_model][today] = (
                 tts_characters[tts_model].get(today, 0) + text_length
             )
+            self.add_current_costs(tts_cost)
+            # update the user balance
+            resp = self.balance_consuming(tts_cost)
+            logging.info(f"users new balance is {resp}")
 
             # Update the usage_history in the database
             self.supabase.table("usage_history").update(
@@ -443,7 +458,10 @@ class UsageTracker:
             usage_history = usage_history[0]
             transcription_seconds = usage_history.get("transcription_seconds", {})
             transcription_seconds[today] = transcription_seconds.get(today, 0) + seconds
-
+            self.add_current_costs(transcription_cost)
+            # update the user balance
+            resp = self.balance_consuming(transcription_cost)
+            logging.info(f"users new balance is {resp}")
             # Update the usage_history in the database
             self.supabase.table("usage_history").update(
                 {"transcription_seconds": transcription_seconds}
@@ -527,10 +545,10 @@ class UsageTracker:
 
     def initialize_all_time_cost(
         self,
-        tokens_price=0.002,
-        image_prices="0.016,0.018,0.02",
+        tokens_price=0.03,
+        image_prices="0.016,0.018,0.08",
         minute_price=0.006,
-        vision_token_price=0.01,
+        vision_token_price=0.03,
         tts_prices="0.015,0.030",
     ):
         """
@@ -592,42 +610,6 @@ class UsageTracker:
         )
         return all_time_cost
 
-    # def add_or_update_user_setting(self, model_name=None, brain=None):
-    #     """
-    #     Adds or updates a user's setting. If the user has an existing setting, it updates it.
-    #     Otherwise, it creates a new setting entry.
-    #
-    #     :param model_name: Optional model name to set for the user.
-    #     :param brain: Optional brain setting to set for the user.
-    #     """
-    #     # Check if the user already has a setting
-    #     existing_setting = (
-    #         self.supabase.table("user_settings")
-    #         .select("*")
-    #         .eq("user_id", self.user_id)
-    #         .execute()
-    #     )
-    #
-    #     if existing_setting.data:
-    #         # Update existing setting
-    #         update_data = {}
-    #         if model_name is not None:
-    #             update_data["model_name"] = model_name
-    #         if brain is not None:
-    #             update_data["brain"] = brain
-    #         if update_data:
-    #             update_data["last_update"] = datetime.now().isoformat()
-    #             self.supabase.table("user_settings").update(update_data).eq("user_id", self.user_id).execute()
-    #     else:
-    #         # Insert new setting
-    #         new_setting = {
-    #             "user_id": self.user_id,
-    #             "model_name": model_name if model_name else "",
-    #             "brain": brain if brain else "",
-    #             "last_update": datetime.now().isoformat()
-    #         }
-    #         self.supabase.table("user_settings").insert(new_setting).execute()
-
     def update_user_model(self, model_name):
         """
         Updates a user's model name setting. If the user has an existing setting, it updates the model name.
@@ -647,16 +629,18 @@ class UsageTracker:
             # Update existing setting with the new model name
             update_data = {
                 "model_name": model_name,
-                "last_update": datetime.now().isoformat()
+                "last_update": datetime.now().isoformat(),
             }
-            self.supabase.table("user_settings").update(update_data).eq("user_id", self.user_id).execute()
+            self.supabase.table("user_settings").update(update_data).eq(
+                "user_id", self.user_id
+            ).execute()
         else:
             # Insert new setting with model name
             new_setting = {
                 "user_id": self.user_id,
                 "model_name": model_name,
                 "brain": "assistant",
-                "last_update": datetime.now().isoformat()
+                "last_update": datetime.now().isoformat(),
             }
             self.supabase.table("user_settings").insert(new_setting).execute()
 
@@ -677,18 +661,17 @@ class UsageTracker:
 
         if existing_setting.data:
             # Update existing setting with the new brain
-            update_data = {
-                "brain": brain,
-                "last_update": datetime.now().isoformat()
-            }
-            self.supabase.table("user_settings").update(update_data).eq("user_id", self.user_id).execute()
+            update_data = {"brain": brain, "last_update": datetime.now().isoformat()}
+            self.supabase.table("user_settings").update(update_data).eq(
+                "user_id", self.user_id
+            ).execute()
         else:
             # Insert new setting with brain
             new_setting = {
                 "user_id": self.user_id,
                 "model_name": "gpt-3.5-turbo-0125",  # Assuming default or empty initial value
                 "brain": brain,
-                "last_update": datetime.now().isoformat()
+                "last_update": datetime.now().isoformat(),
             }
             self.supabase.table("user_settings").insert(new_setting).execute()
 
@@ -709,4 +692,73 @@ class UsageTracker:
             return setting.data[0]
         else:
             return None
+
+    def add_balance(self, amount: float, payment_method, status="active"):
+        """
+        Adds a balance to the user's account and records the transaction in the 'payments' table.
+        :param amount: The amount of money being added.
+        :param payment_method: The payment method used for the transaction.
+        :param status: The status of the payment, default is 'active'.
+        """
+        # Insert into payments table
+        self.supabase.table("payments").insert(
+            {
+                "user_id": self.user_id,
+                "amount": amount,
+                "payment_method": payment_method,
+                "status": status,
+            }
+        ).execute()
+
+    def get_balance(self, status="active"):
+        """
+            Retrieves the balance for a specific user based on the specified payment status from the 'payments' table.
+
+            This method queries the 'payments' table in the Supabase database, selecting
+            the 'amount' where the 'user_id' matches
+            the user ID associated with this instance of the class and the payment
+            'status' matches the provided status argument.
+
+            Args:
+                status (str, optional): The status of the payments to include in the balance calculation.
+                    Defaults to 'active', but can be adjusted to match any status
+                    type stored in the database (e.g., 'completed', 'pending').
+
+            Returns:
+                The amount of the first matching payment record if any records are found,
+                otherwise None. This method expects that
+                the query will return a balance related to a specific status. If no
+                records match the query, None is returned.
+
+            Notes:
+                - The method logs the fetched balance data if any data is found.
+                - Currently, the method retrieves only the first record's amount from potentially multiple records.
+                  Depending on requirements, modifications might be necessary to sum
+                  amounts or handle multiple records appropriately.
+        """
+        balance = (
+            self.supabase.table("payments")
+            .select("amount")
+            .eq("user_id", self.user_id)
+            .eq("status", status)
+            .execute()
+        )
+        if balance.data:
+            logging.info(f"user balance is: {balance.data[0]}")
+            return balance.data[0]
+        else:
+            return None
+
+    def balance_consuming(self, token_usage_in_dollar):
+        balance = self.get_balance()
+        logging.info(f"the token usage in dollar {token_usage_in_dollar}")
+        remaining_balance = balance["amount"] - token_usage_in_dollar
+        data = (
+            self.supabase.table("payments")
+            .update({"amount": remaining_balance})
+            .eq("user_id", self.user_id)
+            .execute()
+        )
+        return data.data[0]
+
 

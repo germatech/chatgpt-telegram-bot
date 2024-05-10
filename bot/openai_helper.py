@@ -113,6 +113,8 @@ class OpenAIHelper:
                 answer += "\n\n"
         else:
             answer = response.choices[0].message.content.strip()
+            in_tokens = response.usage.prompt_tokens
+            out_tokens = response.usage.completion_tokens
             self.__add_to_history(chat_id, role="assistant", content=answer)
 
         bot_language = self.config.bot_language

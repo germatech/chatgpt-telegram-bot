@@ -13,10 +13,14 @@ config_dir = Path(__file__).parent.parent.resolve() / "bot/resources"
 with open(config_dir / "chat_modes.yml", "r") as f:
     chat_modes = yaml.safe_load(f)
 
+config_dir = Path(__file__).parent.parent.resolve() / "bot/resources"
+with open(config_dir / "plans.yml", "r") as f:
+    plans = yaml.safe_load(f)
+
 # Models can be found here: https://platform.openai.com/docs/models/overview
 GPT_3_MODELS = ("gpt-3.5-turbo-0125",)
-GPT_4_VISION_MODELS = ("gpt-4-vision-preview",)
-GPT_4_128K_MODELS = ("gpt-4-0125-preview",)
+GPT_4_VISION_MODELS = ("gpt-4-turbo",)
+GPT_4_128K_MODELS = ("gpt-4-turbo",)
 GPT_ALL_MODELS = GPT_3_MODELS + GPT_4_VISION_MODELS + GPT_4_128K_MODELS
 
 
@@ -49,10 +53,9 @@ def are_functions_available(model: str) -> bool:
         "gpt-4",
         "gpt-4-32k",
         "gpt-4-1106-preview",
+        "gpt-4-turbo",
     ):
         return datetime.date.today() > datetime.date(2023, 6, 27)
-    if model == "gpt-4-vision-preview":
-        return False
     return True
 
 
@@ -71,6 +74,7 @@ class BotConfig:
         self.proxy = os.environ.get("PROXY", None) or os.environ.get(
             "OPENAI_PROXY", None
         )
+        self.env: bool = os.getenv("ENV", False)
         self.max_history_size = int(os.environ.get("MAX_HISTORY_SIZE", 15))
         self.max_conversation_age_minutes = int(
             os.environ.get("MAX_CONVERSATION_AGE_MINUTES", 180)
@@ -143,12 +147,12 @@ class BotConfig:
             os.environ.get("IGNORE_GROUP_VISION", "true").lower() == "true"
         )
         self.group_trigger_keyword = os.environ.get("GROUP_TRIGGER_KEYWORD", "")
-        self.token_price = float(os.environ.get("TOKEN_PRICE", 0.002))
+        self.token_price = float(os.getenv("TOKEN_PRICE"))
         self.image_prices = [
             float(i)
-            for i in os.environ.get("IMAGE_PRICES", "0.016,0.018,0.02").split(",")
+            for i in os.getenv("IMAGE_PRICES").split(",")
         ]
-        self.vision_token_price = float(os.environ.get("VISION_TOKEN_PRICE", "0.01"))
+        self.vision_token_price = float(os.getenv("VISION_TOKEN_PRICE"))
         self.image_receive_mode = os.environ.get("IMAGE_FORMAT", "photo")
         self.tts_prices = [
             float(i) for i in os.environ.get("TTS_PRICES", "0.015,0.030").split(",")
@@ -163,7 +167,17 @@ class BotConfig:
                 f"Please set ENABLE_FUNCTIONS to false or use a model that supports it."
             )
             exit(1)
-        # Initialize other configurations here
+        self.binance_base_url = os.getenv("BINANCE_BASE_URL")
+        self.binance_api_key = os.getenv("BINANCE_API_KEY")
+        self.binance_api_secret = os.getenv("BINANCE_API_SECRET")
+        self.test_binance_base_url = os.getenv("TEST_BINANCE_BASE_URL")
+        self.test_binance_key = os.getenv("TEST_BINANCE_KEY")
+
+        self.cryptomus_key = os.getenv("CRYPTOMUS_KEY")
+        self.cryptomus_merchant_id = os.getenv("CRYPTOMUS_MERCHANT_ID")
+        self.cryptomus_base_url = os.getenv("CRYPTOMUS_BASE_URL")
+        self.cryptomus_webhook = os.getenv("CRYPTOMUS_WEBHOOK")
+        self.cryptomus_allowed_ip = os.getenv("CRYPTOMUS_ALLOWED_IP")
 
     def update_config(self, key, value):
         if hasattr(self, key):

@@ -1,10 +1,14 @@
 import os
+import logging
 from itertools import islice
 from typing import Dict
 
 from duckduckgo_search import DDGS
 
 from .plugin import Plugin
+
+
+TIMES = 0
 
 
 class DDGWebSearchPlugin(Plugin):
@@ -109,13 +113,17 @@ class DDGWebSearchPlugin(Plugin):
         ]
 
     async def execute(self, function_name, helper, **kwargs) -> Dict:
-        with DDGS() as ddgs:
+        TIMES = +1
+        logging.info(f"the duckduck used {TIMES} times")
+        with DDGS(timeout=30) as ddgs:
             ddgs_gen = ddgs.text(
                 kwargs["query"],
                 region=kwargs.get("region", "wt-wt"),
                 safesearch=self.safesearch,
+                timelimit="m",
+                max_results=3,
             )
-            results = list(islice(ddgs_gen, 3))
+            results = list(ddgs_gen)
 
             if results is None or len(results) == 0:
                 return {"Result": "No good DuckDuckGo Search Result was found"}
