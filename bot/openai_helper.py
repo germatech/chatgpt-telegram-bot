@@ -237,9 +237,11 @@ class OpenAIHelper:
                     ]
 
             common_args = {
-                "model": self.config.model
-                if not self.conversations_vision[chat_id]
-                else self.config.vision_model,
+                "model": (
+                    self.config.model
+                    if not self.conversations_vision[chat_id]
+                    else self.config.vision_model
+                ),
                 "messages": self.conversations[chat_id],
                 "temperature": self.config.temperature,
                 "n": self.config.n_choices,
@@ -336,9 +338,11 @@ class OpenAIHelper:
             model=self.config.model,
             messages=self.conversations[chat_id],
             functions=self.plugin_manager.get_functions_specs(),
-            function_call="auto"
-            if times < self.config.functions_max_consecutive_calls
-            else "none",
+            function_call=(
+                "auto"
+                if times < self.config.functions_max_consecutive_calls
+                else "none"
+            ),
             stream=stream,
         )
         return await self.__handle_function_call(
