@@ -712,29 +712,29 @@ class UsageTracker:
 
     def get_balance(self, status="active"):
         """
-            Retrieves the balance for a specific user based on the specified payment status from the 'payments' table.
+        Retrieves the balance for a specific user based on the specified payment status from the 'payments' table.
 
-            This method queries the 'payments' table in the Supabase database, selecting
-            the 'amount' where the 'user_id' matches
-            the user ID associated with this instance of the class and the payment
-            'status' matches the provided status argument.
+        This method queries the 'payments' table in the Supabase database, selecting
+        the 'amount' where the 'user_id' matches
+        the user ID associated with this instance of the class and the payment
+        'status' matches the provided status argument.
 
-            Args:
-                status (str, optional): The status of the payments to include in the balance calculation.
-                    Defaults to 'active', but can be adjusted to match any status
-                    type stored in the database (e.g., 'completed', 'pending').
+        Args:
+            status (str, optional): The status of the payments to include in the balance calculation.
+                Defaults to 'active', but can be adjusted to match any status
+                type stored in the database (e.g., 'completed', 'pending').
 
-            Returns:
-                The amount of the first matching payment record if any records are found,
-                otherwise None. This method expects that
-                the query will return a balance related to a specific status. If no
-                records match the query, None is returned.
+        Returns:
+            The amount of the first matching payment record if any records are found,
+            otherwise None. This method expects that
+            the query will return a balance related to a specific status. If no
+            records match the query, None is returned.
 
-            Notes:
-                - The method logs the fetched balance data if any data is found.
-                - Currently, the method retrieves only the first record's amount from potentially multiple records.
-                  Depending on requirements, modifications might be necessary to sum
-                  amounts or handle multiple records appropriately.
+        Notes:
+            - The method logs the fetched balance data if any data is found.
+            - Currently, the method retrieves only the first record's amount from potentially multiple records.
+              Depending on requirements, modifications might be necessary to sum
+              amounts or handle multiple records appropriately.
         """
         balance = (
             self.supabase.table("payments")
@@ -760,5 +760,3 @@ class UsageTracker:
             .execute()
         )
         return data.data[0]
-
-
