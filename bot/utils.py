@@ -35,8 +35,8 @@ def message_text(message: Message) -> str:
         return ""
 
     for _, text in sorted(
-            message.parse_entities([MessageEntity.BOT_COMMAND]).items(),
-            key=(lambda item: item[0].offset),
+        message.parse_entities([MessageEntity.BOT_COMMAND]).items(),
+        key=(lambda item: item[0].offset),
     ):
         message_txt = message_txt.replace(text, "").strip()
 
@@ -44,7 +44,7 @@ def message_text(message: Message) -> str:
 
 
 async def is_user_in_group(
-        update: Update, context: CallbackContext, user_id: int
+    update: Update, context: CallbackContext, user_id: int
 ) -> bool:
     """
     Checks if user_id is a member of the group
@@ -83,20 +83,12 @@ def get_stream_cutoff_values(update: Update, content: str) -> int:
         return (
             180
             if len(content) > 1000
-            else 120
-            if len(content) > 200
-            else 90
-            if len(content) > 50
-            else 50
+            else 120 if len(content) > 200 else 90 if len(content) > 50 else 50
         )
     return (
         90
         if len(content) > 1000
-        else 45
-        if len(content) > 200
-        else 25
-        if len(content) > 50
-        else 15
+        else 45 if len(content) > 200 else 25 if len(content) > 50 else 15
     )
 
 
@@ -116,15 +108,15 @@ def split_into_chunks(text: str, chunk_size: int = 4096) -> list[str]:
     """
     Splits a string into chunks of a given size.
     """
-    return [text[i: i + chunk_size] for i in range(0, len(text), chunk_size)]
+    return [text[i : i + chunk_size] for i in range(0, len(text), chunk_size)]
 
 
 async def wrap_with_indicator(
-        update: Update,
-        context: CallbackContext,
-        coroutine,
-        chat_action: constants.ChatAction = "",
-        is_inline=False,
+    update: Update,
+    context: CallbackContext,
+    coroutine,
+    chat_action: constants.ChatAction = "",
+    is_inline=False,
 ):
     """
     Wraps a coroutine while repeatedly sending a chat action to the user.
@@ -144,12 +136,12 @@ async def wrap_with_indicator(
 
 
 async def edit_message_with_retry(
-        context: ContextTypes.DEFAULT_TYPE,
-        chat_id: int | None,
-        message_id: str,
-        text: str,
-        markdown: bool = True,
-        is_inline: bool = False,
+    context: ContextTypes.DEFAULT_TYPE,
+    chat_id: int | None,
+    message_id: str,
+    text: str,
+    markdown: bool = True,
+    is_inline: bool = False,
 ):
     """
     Edit a message with retry logic in case of failure (e.g. broken markdown)
@@ -196,7 +188,7 @@ async def error_handler(_: object, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 
 async def is_allowed(
-        config: BotConfig, update: Update, context: CallbackContext, is_inline=False
+    config: BotConfig, update: Update, context: CallbackContext, is_inline=False
 ) -> bool:
     """
     Checks if the user is allowed to use the bot.
@@ -265,6 +257,7 @@ def get_user_budget(config: BotConfig, user_id) -> float | None:
         return float("inf")
 
     user_budgets = config.user_budgets.split(",")
+    logging.info(f"user budgets {user_budgets}")
     if config.allowed_user_ids == "*":
         # same budget for all users, use value in first position of budget list
         if len(user_budgets) > 1:
@@ -287,7 +280,7 @@ def get_user_budget(config: BotConfig, user_id) -> float | None:
 
 
 async def get_remaining_budget(
-        config: BotConfig, usage, update: Update, is_inline=False
+    config: BotConfig, usage, update: Update, is_inline=False
 ) -> float:
     """
     Calculate the remaining budget for a user based on their current usage.
@@ -322,6 +315,8 @@ async def get_remaining_budget(
     # Get budget for users
     # user_budget = get_user_budget(config, user_id)
     user_budget = usage[user_id].get_balance(status="active")
+    if user_budget["amount"] <= 0:
+        raise ValueError("no budget to use the bot")
     budget_period = config.budget_period
     if user_budget is not None:
         cost = usage[user_id].get_current_cost()[budget_cost_map[budget_period]]
@@ -337,7 +332,7 @@ async def get_remaining_budget(
 
 
 async def is_within_budget(
-        config: BotConfig, usage, update: Update, is_inline=False
+    config: BotConfig, usage, update: Update, is_inline=False
 ) -> bool:
     """
     Checks if the user reached their usage limit.
@@ -365,7 +360,7 @@ async def is_within_budget(
 
 
 async def add_chat_request_to_usage_tracker(
-        usage, config: BotConfig, user_id, used_tokens
+    usage, config: BotConfig, user_id, used_tokens
 ):
     """
     Add chat request to usage tracker
@@ -478,7 +473,7 @@ def encode_image(fileobj):
 
 
 def decode_image(imgbase64):
-    image = imgbase64[len("data:image/jpeg;base64,"):]
+    image = imgbase64[len("data:image/jpeg;base64,") :]
     return base64.b64decode(image)
 
 
@@ -489,10 +484,10 @@ def get_paginated_keyboard(page_index):
     chat_mode_keys = list(chat_modes.keys())
     if chat_mode_keys:
         page_chat_mode_keys = chat_mode_keys[
-                              page_index
-                              * n_chat_modes_per_page: (page_index + 1)
-                                                       * n_chat_modes_per_page
-                              ]
+            page_index
+            * n_chat_modes_per_page : (page_index + 1)
+            * n_chat_modes_per_page
+        ]
 
         keyboard = []
         for chat_mode_key in page_chat_mode_keys:
@@ -560,7 +555,7 @@ async def get_payments_buttons():
         )
 
     # Divide buttons into rows of 3 buttons each
-    button_rows = [buttons[i: i + 3] for i in range(0, len(buttons), 3)]
+    button_rows = [buttons[i : i + 3] for i in range(0, len(buttons), 3)]
 
     reply_markup = InlineKeyboardMarkup(button_rows)
     return text, reply_markup
@@ -584,15 +579,17 @@ def extract_user_id(s):
 
 
 def payment_switcher(
-        user_id: int,
-        user_name: str,
-        user_payment_choice: str,
-        payment_plan: str | None = None,
-        redeem_card: str | None = None,
+    user_id: int,
+    user_name: str,
+    user_payment_choice: str,
+    payment_plan: str | None = None,
+    redeem_card: str | None = None,
 ):
     match user_payment_choice:
         case "crypto":
-            return cryptomus_invoice(user_id=user_id, user_name=user_name, payment_plan=payment_plan)
+            return cryptomus_invoice(
+                user_id=user_id, user_name=user_name, payment_plan=payment_plan
+            )
         case "anis-usdt":
             if redeem_card:
                 return anis_redeem(redeem_code=redeem_card, user_id=user_id)

@@ -148,10 +148,7 @@ class BotConfig:
         )
         self.group_trigger_keyword = os.environ.get("GROUP_TRIGGER_KEYWORD", "")
         self.token_price = float(os.getenv("TOKEN_PRICE"))
-        self.image_prices = [
-            float(i)
-            for i in os.getenv("IMAGE_PRICES").split(",")
-        ]
+        self.image_prices = [float(i) for i in os.getenv("IMAGE_PRICES").split(",")]
         self.vision_token_price = float(os.getenv("VISION_TOKEN_PRICE"))
         self.image_receive_mode = os.environ.get("IMAGE_FORMAT", "photo")
         self.tts_prices = [

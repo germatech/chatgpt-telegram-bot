@@ -658,11 +658,11 @@ class ChatGPTTelegramBot:
                     for index, transcript_chunk in enumerate(chunks):
                         await update.effective_message.reply_text(
                             message_thread_id=get_thread_id(update),
-                            reply_to_message_id=get_reply_to_message_id(
-                                self.config, update
-                            )
-                            if index == 0
-                            else None,
+                            reply_to_message_id=(
+                                get_reply_to_message_id(self.config, update)
+                                if index == 0
+                                else None
+                            ),
                             text=transcript_chunk,
                             parse_mode=constants.ParseMode.MARKDOWN,
                         )
@@ -690,11 +690,11 @@ class ChatGPTTelegramBot:
                     for index, transcript_chunk in enumerate(chunks):
                         await update.effective_message.reply_text(
                             message_thread_id=get_thread_id(update),
-                            reply_to_message_id=get_reply_to_message_id(
-                                self.config, update
-                            )
-                            if index == 0
-                            else None,
+                            reply_to_message_id=(
+                                get_reply_to_message_id(self.config, update)
+                                if index == 0
+                                else None
+                            ),
                             text=transcript_chunk,
                             parse_mode=constants.ParseMode.MARKDOWN,
                         )
@@ -935,7 +935,9 @@ class ChatGPTTelegramBot:
                         parse_mode=constants.ParseMode.MARKDOWN,
                     )
             vision_token_price = self.config.vision_token_price
-            logging.info(f"the vision token price {vision_token_price}, and the total tokens are: {total_tokens}")
+            logging.info(
+                f"the vision token price {vision_token_price}, and the total tokens are: {total_tokens}"
+            )
             self.usage[user_id].add_vision_tokens(total_tokens, vision_token_price)
 
             allowed_user_ids = self.config.allowed_user_ids.split(",")
@@ -1116,11 +1118,11 @@ class ChatGPTTelegramBot:
                         try:
                             await update.effective_message.reply_text(
                                 message_thread_id=get_thread_id(update),
-                                reply_to_message_id=get_reply_to_message_id(
-                                    self.config, update
-                                )
-                                if index == 0
-                                else None,
+                                reply_to_message_id=(
+                                    get_reply_to_message_id(self.config, update)
+                                    if index == 0
+                                    else None
+                                ),
                                 text=chunk,
                                 parse_mode=constants.ParseMode.MARKDOWN,
                             )
@@ -1128,11 +1130,11 @@ class ChatGPTTelegramBot:
                             try:
                                 await update.effective_message.reply_text(
                                     message_thread_id=get_thread_id(update),
-                                    reply_to_message_id=get_reply_to_message_id(
-                                        self.config, update
-                                    )
-                                    if index == 0
-                                    else None,
+                                    reply_to_message_id=(
+                                        get_reply_to_message_id(self.config, update)
+                                        if index == 0
+                                        else None
+                                    ),
                                     text=chunk,
                                 )
                             except Exception as exception:
@@ -1564,72 +1566,3 @@ class ChatGPTTelegramBot:
             logging.info("Commands set successfully.")
         except Exception as e:
             logging.error(f"Failed to set commands: {e}")
-
-    # def run(self):
-    #     """
-    #     Runs the bot indefinitely until the user presses Ctrl+C
-    #     """
-    #     application = (
-    #         ApplicationBuilder()
-    #         .token(self.config.telegram_token)
-    #         .proxy_url(self.config.proxy)
-    #         .get_updates_proxy_url(self.config.proxy)
-    #         .post_init(self.post_init)
-    #         .concurrent_updates(True)
-    #         .build()
-    #     )
-    #
-    #     application.add_handler(CommandHandler("reset", self.reset))
-    #     application.add_handler(CommandHandler("help", self.help))
-    #     application.add_handler(CommandHandler("image", self.image))
-    #     application.add_handler(CommandHandler("tts", self.tts))
-    #     application.add_handler(CommandHandler("start", self.help))
-    #     application.add_handler(CommandHandler("stats", self.stats))
-    #     application.add_handler(CommandHandler("resend", self.resend))
-    #     application.add_handler(CommandHandler("brains", self.get_chat_modes))
-    #     application.add_handler(
-    #         CommandHandler(
-    #             "chat",
-    #             self.prompt,
-    #             filters=filters.ChatType.GROUP | filters.ChatType.SUPERGROUP,
-    #         )
-    #     )
-    #     application.add_handler(
-    #         MessageHandler(filters.PHOTO | filters.Document.IMAGE, self.vision)
-    #     )
-    #     application.add_handler(
-    #         MessageHandler(
-    #             filters.AUDIO
-    #             | filters.VOICE
-    #             | filters.Document.AUDIO
-    #             | filters.VIDEO
-    #             | filters.VIDEO_NOTE
-    #             | filters.Document.VIDEO,
-    #             self.transcribe,
-    #         )
-    #     )
-    #     application.add_handler(
-    #         MessageHandler(filters.TEXT & (~filters.COMMAND), self.prompt)
-    #     )
-    #     application.add_handler(
-    #         InlineQueryHandler(
-    #             self.inline_query,
-    #             chat_types=[
-    #                 constants.ChatType.GROUP,
-    #                 constants.ChatType.SUPERGROUP,
-    #                 constants.ChatType.PRIVATE,
-    #             ],
-    #         )
-    #     )
-    #     application.add_handler(
-    #         CallbackQueryHandler(
-    #             self.get_chat_modes_callback, pattern="^show_chat_modes"
-    #         )
-    #     )
-    #     application.add_handler(
-    #         CallbackQueryHandler(self.set_chat_mode_handle, pattern="^set_chat_mode")
-    #     )
-    #     application.add_handler(CallbackQueryHandler(self.handle_callback_inline_query))
-    #     application.add_error_handler(error_handler)
-    #
-    #     application.run_polling()
