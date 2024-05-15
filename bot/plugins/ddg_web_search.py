@@ -110,9 +110,9 @@ class DDGWebSearchPlugin(Plugin):
     async def execute(self, function_name, helper, **kwargs) -> Dict:
         with DDGS() as ddgs:
             ddgs_gen = ddgs.text(
-                kwargs['query'],
-                region=kwargs.get('region', 'wt-wt'),
-                safesearch=self.safesearch
+                kwargs["query"],
+                region=kwargs.get("region", "wt-wt"),
+                safesearch=self.safesearch,
             )
             results = list(islice(ddgs_gen, 3))
 
@@ -125,4 +125,5 @@ class DDGWebSearchPlugin(Plugin):
                     "title": result["title"],
                     "link": result["href"],
                 }
+
             return {"result": [to_metadata(result) for result in results]}
