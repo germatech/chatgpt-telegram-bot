@@ -320,7 +320,7 @@ async def get_remaining_budget(
     budget_period = config.budget_period
     if user_budget is not None:
         cost = usage[user_id].get_current_cost()[budget_cost_map[budget_period]]
-        return user_budget - cost
+        return user_budget["amount"] - cost
 
     # Get budget for guests
     if "guests" not in usage:
