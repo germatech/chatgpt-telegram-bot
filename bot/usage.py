@@ -760,3 +760,18 @@ class UsageTracker:
             .execute()
         )
         return data.data[0]
+
+    def get_the_total_user_budget(self, status="active"):
+        user_budget = (
+            self.supabase.table("payments")
+            .select("total_payment")
+            .eq("user_id", self.user_id)
+            .eq("status", status)
+            .execute()
+        )
+
+        if user_budget.data:
+            return user_budget.data[0]
+        else:
+            return None
+

@@ -1,5 +1,5 @@
 import os
-from typing import Dict
+from typing import Dict, List, Any
 from itertools import islice
 from duckduckgo_search import DDGS
 
@@ -107,23 +107,9 @@ class DDGWebSearchPlugin(Plugin):
             }
         ]
 
-    async def execute(self, function_name, helper, **kwargs) -> Dict:
+    async def execute(self, function_name, helper, **kwargs) -> list[Any]:
+        query = kwargs.get("query")
+        # max_results = kwargs.get("max_results")
+        region = kwargs.get("region", "wt-wt")
         with DDGS() as ddgs:
-            ddgs_gen = ddgs.text(
-                kwargs["query"],
-                region=kwargs.get("region", "wt-wt"),
-                safesearch=self.safesearch,
-            )
-            results = list(islice(ddgs_gen, 3))
-
-            if results is None or len(results) == 0:
-                return {"Result": "No good DuckDuckGo Search Result was found"}
-
-            def to_metadata(result: Dict) -> Dict[str, str]:
-                return {
-                    "snippet": result["body"],
-                    "title": result["title"],
-                    "link": result["href"],
-                }
-
-            return {"result": [to_metadata(result) for result in results]}
+            return [r for r in ddgs.text(query, safesearch=self.safesearch, max_results=3, region=region)]

@@ -1,7 +1,8 @@
 import os
 import random
+import logging
 from itertools import islice
-from typing import Dict
+from typing import Dict, List
 
 from duckduckgo_search import DDGS
 
@@ -117,7 +118,8 @@ class DDGImageSearchPlugin(Plugin):
             }
         ]
 
-    async def execute(self, function_name, helper, **kwargs) -> Dict:
+    async def execute(self, function_name, helper, **kwargs) -> dict[str, str] | list[str]:
+        pics = []
         with DDGS() as ddgs:
             image_type = kwargs.get("type", "photo")
             ddgs_images_gen = ddgs.images(
@@ -125,6 +127,8 @@ class DDGImageSearchPlugin(Plugin):
                 region=kwargs.get("region", "wt-wt"),
                 safesearch=self.safesearch,
                 type_image=image_type,
+                max_results=10,
+
             )
             results = list(islice(ddgs_images_gen, 10))
             if not results or len(results) == 0:
@@ -133,10 +137,17 @@ class DDGImageSearchPlugin(Plugin):
             # Shuffle the results to avoid always returning the same image
             random.shuffle(results)
 
-            return {
-                "direct_result": {
-                    "kind": image_type,
-                    "format": "url",
-                    "value": results[0]["image"],
-                }
-            }
+            logging.info(f"the results are {results}")
+            for r in results:
+                pics.append(r['image'])
+            return pics
+            # return_dict = {
+            #     "direct_result": {
+            #         "kind": image_type,
+            #         "format": "url",
+            #         "value": pic,
+            #     } for pic in pics
+            # }
+            # logging.info(f"the results are {return_dict}")
+            # return return_dict
+

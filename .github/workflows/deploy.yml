@@ -1,1 +1,8 @@
 name: Deploy to DigitalOcean Droplet
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  
