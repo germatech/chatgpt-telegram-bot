@@ -314,13 +314,14 @@ async def get_remaining_budget(
 
     # Get budget for users
     # user_budget = get_user_budget(config, user_id)
-    user_budget = usage[user_id].get_balance(status="active")
-    if user_budget["amount"] <= 0:
+    user_budget = usage[user_id].get_the_total_user_budget(status="active")
+    if user_budget["total_payment"] <= 0:
         raise ValueError("no budget to use the bot")
     budget_period = config.budget_period
     if user_budget is not None:
         cost = usage[user_id].get_current_cost()[budget_cost_map[budget_period]]
-        return user_budget["amount"] - cost
+        logging.info(f"the cost is {cost}")
+        return user_budget["total_payment"] - cost
 
     # Get budget for guests
     if "guests" not in usage:
@@ -356,6 +357,7 @@ async def is_within_budget(
     remaining_budget = await get_remaining_budget(
         config, usage, update, is_inline=is_inline
     )
+    logging.info(f"is_within_budget {remaining_budget} and {remaining_budget > 0}")
     return remaining_budget > 0
 
 
