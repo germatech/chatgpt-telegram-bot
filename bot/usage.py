@@ -46,7 +46,7 @@ class UsageTracker:
                 {"user_id": self.user_id, "user_name": self.user_name}
             ).execute()
 
-            self.add_balance(status="active", amount=0.5, payment_method="free-plan")
+            self.add_balance(status="active", amount=0.5, total_payment=0.5, payment_method="free-plan")
 
         # Initialize or fetch current cost from 'current_costs' table
         self.current_cost = self.initialize_or_fetch_current_cost()
@@ -693,7 +693,7 @@ class UsageTracker:
         else:
             return None
 
-    def add_balance(self, amount: float, payment_method, status="active"):
+    def add_balance(self, amount: float, payment_method, total_payment,status="active"):
         """
         Adds a balance to the user's account and records the transaction in the 'payments' table.
         :param amount: The amount of money being added.
@@ -705,6 +705,7 @@ class UsageTracker:
             {
                 "user_id": self.user_id,
                 "amount": amount,
+                "total_payment": total_payment,
                 "payment_method": payment_method,
                 "status": status,
             }
