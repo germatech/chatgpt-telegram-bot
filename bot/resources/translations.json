@@ -56,7 +56,12 @@
         "function_unavailable_in_inline_mode": "This function is unavailable in inline mode",
         "chat_modes": "",
         "payments": "\uD83D\uDC7B Choose payment method: ⚡\uFE0F Pay-as-You-Go System ⚡\uFE0F",
+        "payment_libyan-payments": "The link below leads you to the process of paying us in Libyan currency through\nvarious methods (bank card - Pay for me - Mobi Cash - Sadad - Tadawul)",
+        "payment_crypto": "The link below leads you to the process of paying us directly using cryptocurrencies",
+        "payment_anis-usdt": "Send me your redeem card code so i can add it to your balance",
+        "payment_donation": "this is wil go to the charity",
         "payments_description": "Pay in crypto",
+        "payment_link": "Hit the following link to start the payment process",
         "redeem_no_prompt": "Add your redeem, EX: /redeem ADSCV675NMJ8"
     },
     "es": {

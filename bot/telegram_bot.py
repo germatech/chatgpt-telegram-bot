@@ -1,4 +1,5 @@
 import asyncio
+import datetime
 import logging
 import os
 import io
@@ -40,10 +41,14 @@ from utils import (
     cleanup_intermediate_files,
     get_paginated_keyboard,
     get_payments_buttons,
+    clean_string,
+    get_plan_image,
+    payment_switcher
 )
 from openai_helper import OpenAIHelper, localized_text
 from usage import UsageTracker
-from config import chat_modes, BotConfig
+from config import chat_modes, BotConfig, plans
+from tlync_client import DataBody
 
 
 class ChatGPTTelegramBot:
@@ -1213,6 +1218,139 @@ class ChatGPTTelegramBot:
     #         else:
     #             raise ValueError("Invalid user")
     #     pass
+
+    async def handle_payments_callback(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        user_id = update.callback_query.from_user.id
+        query = update.callback_query
+        # Extract plan type from callback data
+        query_data = query.data
+        logging.info(f"this is the call back from the {query_data}")
+        _, payment_selected = query_data.split("|")
+        logging.info(f"the payments {payment_selected}")
+        # clean the name of the payments
+        clean_payment_selected = clean_string(payment_selected)
+        # Fetch plan details from your database or config
+        logging.info(f"the clean payments {clean_payment_selected}")
+        get_image = get_plan_image(clean_payment_selected, config=self.config)
+        logging.info(clean_payment_selected)
+        bot_language = self.config.bot_language
+        # text = get_message_in_language(
+        #     language=lang, message_key="payment_plan", text_format=clean_payment_selected
+        # )
+        # Create the caption for the image
+        payment_info = localized_text(f"payment_{clean_payment_selected}", bot_language)
+        logging.info(f"the payments info {payment_info}")
+        if clean_payment_selected == "libyan-payments":
+            price = plans[clean_payment_selected]["price"]
+            button_text = f"{price} {plans[clean_payment_selected]['currency'][0]}"
+            InlineKeyboardButton(
+                button_text,
+                callback_data=f"prices|{price}|{clean_payment_selected}",
+            )
+            await context.bot.send_photo(
+                chat_id=query.message.chat_id,
+                photo=get_image,
+                caption=payment_info,
+                parse_mode="HTML",
+            )
+
+        if clean_payment_selected == "crypto" and plans[clean_payment_selected]["price"] is not None:
+            buttons = []
+            for price in plans[clean_payment_selected]["price"]:
+                button_text = (
+                    f"{price} {plans[clean_payment_selected]['currency'][0]}"
+                )
+                buttons.append(
+                    InlineKeyboardButton(
+                        button_text,
+                        callback_data=f"prices|{price}|{clean_payment_selected}",
+                    )
+                )
+
+            # Divide buttons into rows of 3 buttons each
+            button_rows = [buttons[i: i + 3] for i in range(0, len(buttons), 3)]
+            new_reply_markup = InlineKeyboardMarkup(button_rows)
+
+            # Send the image with the caption
+            reply_markup_to_use = (
+                new_reply_markup
+                if isinstance(new_reply_markup, InlineKeyboardMarkup)
+                else None
+            )
+            await context.bot.send_photo(
+                chat_id=query.message.chat_id,
+                photo=get_image,
+                caption=payment_info,
+                parse_mode="HTML",
+                reply_markup=reply_markup_to_use,
+            )
+
+        elif plans[clean_payment_selected]["price"] is None:
+            await context.bot.send_photo(
+                chat_id=query.message.chat_id,
+                photo=get_image,
+                caption=payment_info,
+                parse_mode="HTML",
+            )
+
+            # await context.bot.send_message(
+            #     text=f"{get_message_in_language(language=lang, message_key='send_redeem')}",
+            #     chat_id=query.message.chat_id,
+            # )
+
+    async def pay_the_plane_handle(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        user_id = update.callback_query.from_user.id
+        user_name = update.callback_query.from_user.name
+        query = update.callback_query
+        # Extract plan type from callback data
+        query_data = query.data
+        logging.info(f"this is the all price and plan {query_data}")
+        bot_language = self.config.bot_language
+        payment_link = localized_text("payment_link", bot_language)
+        logging.info(f"the payment link is {payment_link}")
+        _, amount_to_pay, payment_plan = query_data.split("|")
+        if payment_plan == "crypto":
+            url, order_id = payment_switcher(
+                user_id=user_id, payment_plan=amount_to_pay, user_payment_choice=payment_plan, user_name=user_name
+            )
+            if url:
+                caption = f"{payment_link} {amount_to_pay} {plans[payment_plan]['currency'][0]}\n<a href='{url}'>Pay Now</a>"
+
+                text = localized_text("payment_crypto", bot_language)
+                caption += text
+
+                # Send the image with the caption
+                await context.bot.send_message(
+                    chat_id=query.message.chat_id,
+                    text=caption,
+                    parse_mode="HTML",
+                )
+        if payment_plan == "libyan-payments":
+            custom_ref = f"{user_id}-{user_name}-{uuid4()}"
+            data = {
+                "id": "dlM5V0E37P14XKqaE2yRrk6DwjlQLxpKkWpmAe3JoBnN05bdY9zgGWMVOW2LnxgQ",
+                "amount": 30.0,
+                "phone": "0914043220",
+                "email": "elmahdi.alagab@gmail.com",
+                "backend_url": "http://0.0.0.0:8300/tlync_callback",
+                "frontend_url": "http://frontend.url",
+                "custom_ref": custom_ref
+            }
+            res = payment_switcher(user_payment_choice=payment_plan, data=DataBody(**data))
+            logging.info(f"the response of the libyan payments is {res}")
+            if res.json()["result"] == "success" and res["custom_re"] == custom_ref:
+                url = res["url"]
+                caption = f"{payment_link} {30} {plans[payment_plan]['currency'][0]}\n<a href='{url}'>Pay Now</a>"
+
+                text = localized_text("payment_libyan-payments", bot_language)
+                caption += text
+
+                # Send the image with the caption
+                await context.bot.send_message(
+                    chat_id=query.message.chat_id,
+                    text=caption,
+                    parse_mode="HTML",
+                )
 
     async def payment_handle(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         user_id = update.effective_user.id

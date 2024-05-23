@@ -1,19 +1,23 @@
-methods: ["🇱🇾Libyan Dinar", "💎Crypto", "💰Anis USDT", "❤️‍🩹Donation"]
+methods: ["🇱🇾Libyan Payments", "💎Crypto", "💰Anis USDT", "❤️‍🩹Donation"]
 
-local-lyd:
+libyan-payments:
   currency:
     - LYD
-  price: null
+  price:
+    -30
 
 crypto:
   currency:
     - USDT
-  price: null
+  price:
+    - 10
+    - 20
+    - 30
 
 anis-usdt:
   currency:
     - USDT
-  price: null
+  price: 15
 
 donation:
   currency:

@@ -104,16 +104,29 @@ def main():
             ],
         )
     )
+
     application.add_handler(
         CallbackQueryHandler(
             telegram_bot.get_chat_modes_callback, pattern="^show_chat_modes"
         )
     )
+
     application.add_handler(
         CallbackQueryHandler(
             telegram_bot.set_chat_mode_handle, pattern="^set_chat_mode"
         )
     )
+
+    application.add_handler(
+        CallbackQueryHandler(
+            telegram_bot.handle_payments_callback, pattern="^payments"
+        )
+    )
+
+    application.add_handler(
+        CallbackQueryHandler(telegram_bot.pay_the_plane_handle, pattern="^prices")
+    )
+
     application.add_handler(
         CallbackQueryHandler(telegram_bot.handle_callback_inline_query)
     )
