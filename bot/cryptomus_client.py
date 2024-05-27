@@ -84,7 +84,7 @@ class CryptomusManager:
             response = requests.post(
                 endpoint,
                 headers=headers,
-                data=CryptoBodyRequest(**request_body).model_dump(),
+                data=json.dumps(request_body, separators=(",", ":")),
                 timeout=timeout,
             )
             response.raise_for_status()
