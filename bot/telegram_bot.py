@@ -127,27 +127,27 @@ class ChatGPTTelegramBot:
         bot_language = self.config.bot_language
 
         start_text = (
-                localized_text("start_description", bot_language)[0]
+                localized_text("start_description_ar", bot_language)[0]
                 + "\n\n"
-                + localized_text("start_description", bot_language)[1]
+                + localized_text("start_description_ar", bot_language)[1]
                 + "\n\n"
-                + localized_text("start_how_to_use_me", bot_language)[0]
+                + localized_text("start_how_to_use_me_ar", bot_language)[0]
                 + "\n"
-                + localized_text("start_how_to_use_me", bot_language)[1]
+                + localized_text("start_how_to_use_me_ar", bot_language)[1]
                 + "\n"
-                + localized_text("start_how_to_use_me", bot_language)[2]
+                + localized_text("start_how_to_use_me_ar", bot_language)[2]
                 + "\n"
-                + localized_text("start_how_to_use_me", bot_language)[3]
+                + localized_text("start_how_to_use_me_ar", bot_language)[3]
                 + "\n"
-                + localized_text("start_how_to_use_me", bot_language)[4]
+                + localized_text("start_how_to_use_me_ar", bot_language)[4]
                 + "\n\n"
-                + localized_text("start_privacy", bot_language)[0]
+                + localized_text("start_privacy_ar", bot_language)[0]
                 + "\n"
-                + localized_text("start_privacy", bot_language)[1]
+                + localized_text("start_privacy_ar", bot_language)[1]
                 + "\n\n"
-                + localized_text("start_lets_start", bot_language)[0]
+                + localized_text("start_lets_start_ar", bot_language)[0]
                 + "\n"
-                + localized_text("start_lets_start", bot_language)[1]
+                + localized_text("start_lets_start_ar", bot_language)[1]
         )
         await update.message.reply_text(start_text, disable_web_page_preview=True)
 
