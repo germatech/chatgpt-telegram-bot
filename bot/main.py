@@ -124,7 +124,9 @@ def main():
     )
 
     application.add_handler(
-        CallbackQueryHandler(telegram_bot.pay_the_plane_handle, pattern="^prices")
+        CallbackQueryHandler(
+            telegram_bot.pay_the_plane_handle, pattern="^prices"
+        )
     )
 
     application.add_handler(

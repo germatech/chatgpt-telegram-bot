@@ -1,4 +1,5 @@
 import requests
+import logging
 from config import BotConfig
 from pydantic import BaseModel
 import json
@@ -21,27 +22,28 @@ class TlyncClient:
     def __init__(self, is_test_environment=True):
         self.test_url = config.tlync_test_base_url
         self.live_url = config.tlync_base_url
-        self.base_url = self.test_url if is_test_environment else self.live_url
+        self.base_url = config.tlync_test_base_url
+        self.token = config.tlync_token
         self.headers = {
             "Accept": "application/json",
-            "Content-Type": "application/x-www-form-urlencoded"
+            "Content-Type": "application/x-www-form-urlencoded",
+            "Authorization": f"Bearer {self.token}"
         }
-        self.token = config.tlync_token
-
-    def set_token(self, token):
-        self.token = token
-        self.headers["Authorization"] = f"Bearer {token}"
 
     def handle_request(self, method, endpoint, data=None):
-        url = self.test_url + endpoint
+        url = self.live_url + endpoint
         try:
+            logging.info(f"the url used is {url}")
             if method == "GET":
                 response = requests.get(url, headers=self.headers)
-            else:  # POST request
-                response = requests.post(url, data=data, headers=self.headers)
+            else:
+                logging.info(f"the method is {method}")
+                response = requests.post(url, json=data, headers=self.headers)
+                logging.info(f"the original resp is {response}")
             response.raise_for_status()
-            return response.json()
+            return response
         except requests.exceptions.HTTPError as err:
+            logging.error(f"the error is {err}")
             return {"error": str(err), "response": err.response.json()}
 
     def initiate_payment(self, data: DataBody):

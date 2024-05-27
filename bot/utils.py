@@ -587,7 +587,6 @@ def payment_switcher(
         user_name: str | None = None,
         payment_plan: str | None = None,
         redeem_card: str | None = None,
-        config: BotConfig | None = None,
         data: DataBody | None = None,
 ):
     match user_payment_choice:
@@ -602,8 +601,8 @@ def payment_switcher(
                 raise ValueError("the redeem card is missing")
         case "donation":
             return "Sorry it's not available at the moment"
-        case "local-lyd":
-            return local_payment(config=config, data=data)
+        case "libyan-payments":
+            return local_payment(data=data)
 
 
 def cryptomus_invoice(user_id: int, user_name: str, payment_plan: str):
@@ -635,9 +634,8 @@ def anis_redeem(redeem_code: str, user_id: int):
         raise
 
 
-def local_payment(config: BotConfig, data: DataBody):
+def local_payment(data: DataBody):
     lync_api = TlyncClient(is_test_environment=True)
-    lync_api.set_token(config.tlync_token)
     try:
         resp = lync_api.initiate_payment(data=data)
         logging.info(f"the reponse is {resp}")

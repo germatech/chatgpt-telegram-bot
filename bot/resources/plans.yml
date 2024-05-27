@@ -4,7 +4,9 @@ libyan-payments:
   currency:
     - LYD
   price:
-    -30
+    - 30
+    - 50
+    - 100
 
 crypto:
   currency:
