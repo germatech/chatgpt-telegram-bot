@@ -3,10 +3,20 @@ import base64
 import json
 import requests
 import uuid
+import logging
 from config import BotConfig
+from pydantic import BaseModel
 
 
 config = BotConfig()
+
+
+class CryptoBodyRequest(BaseModel):
+    amount: str
+    currency: str
+    order_id: str
+    lifetime: int
+    url_callback: str
 
 
 class SignatureError(Exception):
@@ -60,6 +70,7 @@ class CryptomusManager:
             "url_callback": self.webhook_url,
         }
 
+        logging.info(f"the request body is {request_body}")
         endpoint = f"{self.base_url}/payment"
         signature = self.generate_signature(request_body)
 
@@ -73,7 +84,7 @@ class CryptomusManager:
             response = requests.post(
                 endpoint,
                 headers=headers,
-                data=json.dumps(request_body, separators=(",", ":")),
+                data=CryptoBodyRequest(**request_body).model_dump(),
                 timeout=timeout,
             )
             response.raise_for_status()
