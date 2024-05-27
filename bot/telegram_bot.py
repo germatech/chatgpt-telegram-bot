@@ -1319,7 +1319,7 @@ class ChatGPTTelegramBot:
         _, amount_to_pay, payment_plan = query_data.split("|")
         if payment_plan == "crypto":
             url, order_id = payment_switcher(
-                user_id=user_id, payment_plan=amount_to_pay, user_payment_choice=payment_plan, user_name=user_name
+                user_id=user_id, payment_plan=amount_to_pay, user_payment_choice=payment_plan
             )
             if url:
                 caption = f"{payment_link} {amount_to_pay} {plans[payment_plan]['currency'][0]}\n<a href='{url}'>Pay Now</a>"

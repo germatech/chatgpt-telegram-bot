@@ -584,7 +584,6 @@ def extract_user_id(s):
 def payment_switcher(
         user_payment_choice: str,
         user_id: int | None = None,
-        user_name: str | None = None,
         payment_plan: str | None = None,
         redeem_card: str | None = None,
         data: DataBody | None = None,
@@ -592,7 +591,7 @@ def payment_switcher(
     match user_payment_choice:
         case "crypto":
             return cryptomus_invoice(
-                user_id=user_id, user_name=user_name, payment_plan=payment_plan
+                user_id=user_id, payment_plan=payment_plan
             )
         case "anis-usdt":
             if redeem_card:
@@ -605,12 +604,12 @@ def payment_switcher(
             return local_payment(data=data)
 
 
-def cryptomus_invoice(user_id: int, user_name: str, payment_plan: str):
+def cryptomus_invoice(user_id: int, payment_plan: str):
     crypto = CryptomusManager()
     try:
         logging.debug("Cryptomus Activated ...")
         url, order_id = crypto.create_invoice(
-            user_id=user_id, user_name=user_name, payment_method=payment_plan
+            user_id=user_id, payment_method=payment_plan
         )
         return url, order_id
     except Exception as e:

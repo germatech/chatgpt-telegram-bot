@@ -61,11 +61,11 @@ class CryptomusManager:
         except Exception as e:
             raise SignatureError(f"Error validating signature: {e}")
 
-    def create_invoice(self, user_id: int, user_name: str, payment_method, timeout=10):
+    def create_invoice(self, user_id: int, payment_method, timeout=10):
         request_body = {
             "amount": str(payment_method),
             "currency": "USDT",
-            "order_id": f"{payment_method}-{user_name}-{user_id}-{uuid.uuid4()}",
+            "order_id": f"{payment_method}-{user_id}-{uuid.uuid4()}",
             "lifetime": 3600,
             "url_callback": self.webhook_url,
         }
