@@ -176,6 +176,30 @@ class BotConfig:
         self.cryptomus_webhook = os.getenv("CRYPTOMUS_WEBHOOK")
         self.cryptomus_allowed_ip = os.getenv("CRYPTOMUS_ALLOWED_IP")
 
+        self.tlync_base_url = os.getenv("TLYNC_BASE_URL")
+        self.tlync_test_base_url = os.getenv("TLYNC_TEST_BASE_URL")
+        self.tlync_token = os.getenv("TLYNC_TOKEN")
+        self.tlync_storid = os.getenv("TLYNC_STORE_ID")
+
+        self.crypto_image_path = (
+                Path(__file__).parent.parent.resolve() / "static" / "crypto.png"
+        )
+        self.libyan_image_path = (
+                Path(__file__).parent.parent.resolve() / "static" / "libyan-payments.png"
+        )
+        self.visa_image_path = (
+                Path(__file__).parent.parent.resolve() / "static" / "visa-master.jpeg"
+        )
+        self.anis_image_path = (
+                Path(__file__).parent.parent.resolve() / "static" / "anis-usdt.png"
+        )
+        self.gx_image_path = (
+                Path(__file__).parent.parent.resolve() / "static" / "gx-cards.jpeg"
+        )
+        self.donation_image_path = (
+                Path(__file__).parent.parent.resolve() / "static" / "donation.jpeg"
+        )
+
     def update_config(self, key, value):
         if hasattr(self, key):
             setattr(self, key, value)

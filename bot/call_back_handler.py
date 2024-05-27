@@ -1,12 +1,12 @@
 import hmac
+import json
+import logging
 from flask import Flask, request, jsonify
 from usage import UsageTracker
 from utils import extract_user_id
 from cryptomus_client import CryptomusManager
 from config import BotConfig
-from logger import logger_manager
 
-logger = logger_manager.get_logger(__name__)
 
 app = Flask(__name__)
 
@@ -19,19 +19,19 @@ CRYPTOMUS_IP = bot_config.cryptomus_allowed_ip
 async def cryptomus_callback():
     # IP validation
     if request.remote_addr != CRYPTOMUS_IP:
-        logger.error("Error IP is unknown")
+        logging.error("Error IP is unknown")
         return jsonify({"error": "Unauthorized IP"}), 401
 
     # Ensure the request is JSON formatted
     if not request.is_json:
-        logger.error(f"is not json")
+        logging.error(f"is not json")
         return jsonify({"error": "Invalid request format"}), 400
 
     data = request.json
 
     sign = data.get("sign")
     if not sign:
-        logger.error(f"the sign is not provided")
+        logging.error(f"the sign is not provided")
         return jsonify({"error": "Sign not provided"}), 400
 
     del data["sign"]
@@ -41,7 +41,7 @@ async def cryptomus_callback():
     computed_hash = hash_string
 
     if not hmac.compare_digest(computed_hash, sign):
-        logger.error(f"invalid sign")
+        logging.error(f"invalid sign")
         return jsonify({"error": "Invalid sign detected!"}), 400
 
     # Assuming `user_id` can be retrieved from `data`:
@@ -52,6 +52,12 @@ async def cryptomus_callback():
     # # # Update user details in the database based on the payment received
 
     return jsonify(data), 200
+
+
+@app.route("/tlync_callback", methods=["POST"])
+async def tlync_callback():
+    data = json.loads(request.data)
+    logging.info(f"the data response fron tlyinc is {data}")
 
 
 if __name__ == "__main__":

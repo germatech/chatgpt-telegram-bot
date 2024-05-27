@@ -1,9 +1,13 @@
 {
     "en": {
         "start_description": ["\uD83C\uDF1F Welcome to GX-GPT! \uD83C\uDF1F", "Hi there! \uD83D\uDC4B I'm your AI assistant, powered by the latest in AI technology. Here's what I can do for you:\nIntelligent Conversations: Ask me anything, and I'll provide detailed, informed responses. Whether it's a complex question or just a casual chat, I'm here to help.\nVisual Insights: Need to analyze an image or visualize a concept? I can assist with that too, thanks to my LVM capabilities.\nLearning and Growing: The more we interact, the better I get at understanding and assisting you."],
+        "start_description_ar": ["\uD83C\uDF1F مرحبًا بك في GX-GPT! \uD83C\uDF1F", "مرحبًا! \uD83D\uDC4B أنا مساعدك الذكي، مدعومًا بأحدث تقنيات الذكاء الصناعي. إليك ما يمكنني فعله من أجلك:\nمحادثات ذكية: اسألني أي شيء، وسأوفر استجابات مفصلة ومستنيرة. سواء كانت أسئلة معقدة أو مجرد دردشة عابرة، أنا هنا للمساعدة.\nرؤى بصرية: تحتاج إلى تحليل صورة أو تصور مفهوم؟ يمكنني أيضًا المساعدة في ذلك بفضل قدراتي في LVM.\nالتعلم والنمو: كلما تفاعلنا أكثر، كلما أصبحت أفضل في فهمك ومساعدتك."],
         "start_how_to_use_me": ["\uD83D\uDD0D How to Use Me:","Simply choose the Brain from here /brains.", "For image-generator queries, \uD83D\uDC69\u200D\uD83C\uDFA8 you can ask the assistant to generate image or write the prompt after /image command (e.g /image cat driving a car)", "For image-analysing queries, just send image from attaches or take a picture by your phone and ask me about it.", "Feel free to explore any hard topic – from science to art, and everything in between."],
+        "start_how_to_use_me_ar": ["\uD83D\uDD0D كيفية استخدامي:", "ببساطة اختر الذكاء الصناعي من هنا", "للاستفسارات المتعلقة بتوليد الصور، يمكنك أن تطلب من المساعد توليد صورة أو كتابة الطلب بعد/image الأمر (مثل قطة تقود سيارة)","للاستفسارات المتعلقة بتحليل الصور، فقط أرسل الصورة من المرفقات أو التقط صورة بواسطة هاتفك واسألني عنها.", "لا تتردد في استكشاف أي موضوع صعب - من العلوم إلى الفن، وكل ما بينهما."],
         "start_privacy": ["\uD83D\uDD10 Privacy and Respect:", "Your privacy matters! I'm designed to respect your confidentiality and provide unbiased, respectful responses."],
+        "start_privacy_ar": ["\uD83D\uDD10 الخصوصية والاحترام:", "خصوصيتك مهمة! تم تصميمي لاحترام سريتك وتقديم ردود محايدة ومحترمة."],
         "start_lets_start": ["\uD83E\uDD1D Let's Get Started!", "I'm here to assist you 24/7. Whenever you're ready, just send a message, and I'll be at your service."],
+        "start_lets_start_ar": ["\uD83E\uDD1D لنبدأ!", "أنا هنا لمساعدتك على مدار الساعة طوال أيام الأسبوع. متى كنت جاهزًا، فقط أرسل رسالة، وسأكون في خدمتك."],
         "help_description":"Show help message",
         "reset_description":"\uD83D\uDE80 Start new dialog. Optionally pass high-level instructions (e.g. /reset You are a helpful assistant)",
         "image_description":"📸Generate image from prompt (e.g. /image cat)",
@@ -14,7 +18,7 @@
         "chat_description":"Chat with the bot!",
         "disallowed":"Sorry",
         "more_info":["☎\uFE0F For more information you can call or text us:","Telegram: +62 813 3722 5829", "Call: +218 91 404 3220"],
-        "budget_limit":"Sorry, you have reached your usage limit.",
+        "budget_limit":"Sorry, you have reached your usage limit.\nTo recharge your wallet just hit /payments",
         "help_text":["I'm a GXGPT bot, talk to me!", "Send me a voice message or file and I'll transcribe it for you"],
         "help_commands":["\uD83D\uDE80Start new dialog", "\uD83D\uDCB8Add balance", "\uD83E\uDDE0Choose Chat Brains", "⚙\uFE0FSelect Model", "\uD83D\uDCB8Check Your balance", "\uD83D\uDE91Show help"] ,
         "stats_conversation":["Current conversation", "chat messages in history", "chat tokens in history"],
@@ -56,7 +60,12 @@
         "function_unavailable_in_inline_mode": "This function is unavailable in inline mode",
         "chat_modes": "",
         "payments": "\uD83D\uDC7B Choose payment method: ⚡\uFE0F Pay-as-You-Go System ⚡\uFE0F",
+        "payment_libyan-payments": "Choose the amount of LYD you want to charge your wallet with, hit the the link to start paying us in Libyan currency through various methods (bank card - Pay for me - Mobi Cash - Sadad - Tadawul)",
+        "payment_crypto": "The link below leads you to the process of paying us directly using cryptocurrencies",
+        "payment_anis-usdt": "Send me your redeem card code so i can add it to your balance",
+        "payment_donation": "this is wil go to the charity",
         "payments_description": "Pay in crypto",
+        "payment_link": "Hit the following link to start the payment process",
         "redeem_no_prompt": "Add your redeem, EX: /redeem ADSCV675NMJ8"
     },
     "es": {

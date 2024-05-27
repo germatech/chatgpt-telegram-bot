@@ -1,4 +1,5 @@
 import asyncio
+import datetime
 import logging
 import os
 import io
@@ -40,10 +41,14 @@ from utils import (
     cleanup_intermediate_files,
     get_paginated_keyboard,
     get_payments_buttons,
+    clean_string,
+    get_plan_image,
+    payment_switcher
 )
 from openai_helper import OpenAIHelper, localized_text
 from usage import UsageTracker
-from config import chat_modes, BotConfig
+from config import chat_modes, BotConfig, plans
+from tlync_client import DataBody
 
 
 class ChatGPTTelegramBot:
@@ -104,11 +109,11 @@ class ChatGPTTelegramBot:
             )
 
         self.group_commands = [
-            BotCommand(
-                command="chat",
-                description=localized_text("chat_description", bot_language),
-            )
-        ] + self.commands
+                                  BotCommand(
+                                      command="chat",
+                                      description=localized_text("chat_description", bot_language),
+                                  )
+                              ] + self.commands
         self.disallowed_message = localized_text("disallowed", bot_language)
         self.budget_limit_message = localized_text("budget_limit", bot_language)
         self.usage = {}
@@ -122,27 +127,27 @@ class ChatGPTTelegramBot:
         bot_language = self.config.bot_language
 
         start_text = (
-            localized_text("start_description", bot_language)[0]
-            + "\n\n"
-            + localized_text("start_description", bot_language)[1]
-            + "\n\n"
-            + localized_text("start_how_to_use_me", bot_language)[0]
-            + "\n"
-            + localized_text("start_how_to_use_me", bot_language)[1]
-            + "\n"
-            + localized_text("start_how_to_use_me", bot_language)[2]
-            + "\n"
-            + localized_text("start_how_to_use_me", bot_language)[3]
-            + "\n"
-            + localized_text("start_how_to_use_me", bot_language)[4]
-            + "\n\n"
-            + localized_text("start_privacy", bot_language)[0]
-            + "\n"
-            + localized_text("start_privacy", bot_language)[1]
-            + "\n\n"
-            + localized_text("start_lets_start", bot_language)[0]
-            + "\n"
-            + localized_text("start_lets_start", bot_language)[1]
+                localized_text("start_description_ar", bot_language)[0]
+                + "\n\n"
+                + localized_text("start_description_ar", bot_language)[1]
+                + "\n\n"
+                + localized_text("start_how_to_use_me_ar", bot_language)[0]
+                + "\n"
+                + localized_text("start_how_to_use_me_ar", bot_language)[1]
+                + "\n"
+                + localized_text("start_how_to_use_me_ar", bot_language)[2]
+                + "\n"
+                + localized_text("start_how_to_use_me_ar", bot_language)[3]
+                + "\n"
+                + localized_text("start_how_to_use_me_ar", bot_language)[4]
+                + "\n\n"
+                + localized_text("start_privacy_ar", bot_language)[0]
+                + "\n"
+                + localized_text("start_privacy_ar", bot_language)[1]
+                + "\n\n"
+                + localized_text("start_lets_start_ar", bot_language)[0]
+                + "\n"
+                + localized_text("start_lets_start_ar", bot_language)[1]
         )
         await update.message.reply_text(start_text, disable_web_page_preview=True)
 
@@ -157,13 +162,13 @@ class ChatGPTTelegramBot:
             f"/{command.command} - {command.description}" for command in commands
         ]
         help_text = (
-            localized_text("help_text", bot_language)[0]
-            + "\n\n"
-            + "\n".join(commands_description)
-            + "\n\n"
-            + localized_text("help_text", bot_language)[1]
-            + "\n\n"
-            + "\n".join(info for info in more_info)
+                localized_text("help_text", bot_language)[0]
+                + "\n\n"
+                + "\n".join(commands_description)
+                + "\n\n"
+                + localized_text("help_text", bot_language)[1]
+                + "\n\n"
+                + "\n".join(info for info in more_info)
         )
         await update.message.reply_text(help_text, disable_web_page_preview=True)
 
@@ -312,7 +317,7 @@ class ChatGPTTelegramBot:
         )
 
     async def get_chat_modes_callback(
-        self, update: Update, context: ContextTypes.DEFAULT_TYPE
+            self, update: Update, context: ContextTypes.DEFAULT_TYPE
     ):
         """
         processes the callback query, logs relevant information, and updates
@@ -343,7 +348,7 @@ class ChatGPTTelegramBot:
         )
 
     async def set_chat_mode_handle(
-        self, update: Update, context: ContextTypes.DEFAULT_TYPE
+            self, update: Update, context: ContextTypes.DEFAULT_TYPE
     ):
         if not await is_allowed(self.config, update, context):
             logging.warning(
@@ -438,8 +443,8 @@ class ChatGPTTelegramBot:
         Generates an image for the given prompt using DALL·E APIs
         """
         if (
-            not self.config.enable_image_generation
-            or not await self.check_allowed_and_within_budget(update, context)
+                not self.config.enable_image_generation
+                or not await self.check_allowed_and_within_budget(update, context)
         ):
             return
 
@@ -486,8 +491,8 @@ class ChatGPTTelegramBot:
                 )
                 # add guest chat request to guest usage tracker
                 if (
-                    str(user_id) not in self.config.allowed_user_ids.split(",")
-                    and "guests" in self.usage
+                        str(user_id) not in self.config.allowed_user_ids.split(",")
+                        and "guests" in self.usage
                 ):
                     self.usage["guests"].add_image_request(
                         image_size, self.config.image_prices
@@ -511,8 +516,8 @@ class ChatGPTTelegramBot:
         Generates a speech for the given input using TTS APIs
         """
         if (
-            not self.config.enable_tts_generation
-            or not await self.check_allowed_and_within_budget(update, context)
+                not self.config.enable_tts_generation
+                or not await self.check_allowed_and_within_budget(update, context)
         ):
             return
 
@@ -547,8 +552,8 @@ class ChatGPTTelegramBot:
                 )
                 # add guest chat request to guest usage tracker
                 if (
-                    str(user_id) not in self.config.allowed_user_ids.split(",")
-                    and "guests" in self.usage
+                        str(user_id) not in self.config.allowed_user_ids.split(",")
+                        and "guests" in self.usage
                 ):
                     self.usage["guests"].add_tts_request(
                         text_length, self.config.tts_model, self.config.tts_prices
@@ -572,8 +577,8 @@ class ChatGPTTelegramBot:
         Transcribe audio messages.
         """
         if (
-            not self.config.enable_transcription
-            or not await self.check_allowed_and_within_budget(update, context)
+                not self.config.enable_transcription
+                or not await self.check_allowed_and_within_budget(update, context)
         ):
             return
 
@@ -722,8 +727,8 @@ class ChatGPTTelegramBot:
         Interpret image using vision model.
         """
         if (
-            not self.config.enable_vision
-            or not await self.check_allowed_and_within_budget(update, context)
+                not self.config.enable_vision
+                or not await self.check_allowed_and_within_budget(update, context)
         ):
             return
 
@@ -737,8 +742,8 @@ class ChatGPTTelegramBot:
             else:
                 trigger_keyword = self.config.group_trigger_keyword
                 if (prompt is None and trigger_keyword != "") or (
-                    prompt is not None
-                    and not prompt.lower().startswith(trigger_keyword.lower())
+                        prompt is not None
+                        and not prompt.lower().startswith(trigger_keyword.lower())
                 ):
                     logging.info(
                         f"Vision coming from group chat with wrong keyword, ignoring..."
@@ -855,8 +860,8 @@ class ChatGPTTelegramBot:
                             continue
 
                     elif (
-                        abs(len(content) - len(prev)) > cutoff
-                        or tokens != "not_finished"
+                            abs(len(content) - len(prev)) > cutoff
+                            or tokens != "not_finished"
                     ):
                         prev = content
 
@@ -972,21 +977,21 @@ class ChatGPTTelegramBot:
             trigger_keyword = self.config.group_trigger_keyword
 
             if prompt.lower().startswith(
-                trigger_keyword.lower()
+                    trigger_keyword.lower()
             ) or update.message.text.lower().startswith("/chat"):
                 if prompt.lower().startswith(trigger_keyword.lower()):
-                    prompt = prompt[len(trigger_keyword) :].strip()
+                    prompt = prompt[len(trigger_keyword):].strip()
 
                 if (
-                    update.message.reply_to_message
-                    and update.message.reply_to_message.text
-                    and update.message.reply_to_message.from_user.id != context.bot.id
+                        update.message.reply_to_message
+                        and update.message.reply_to_message.text
+                        and update.message.reply_to_message.from_user.id != context.bot.id
                 ):
                     prompt = f'"{update.message.reply_to_message.text}" {prompt}'
             else:
                 if (
-                    update.message.reply_to_message
-                    and update.message.reply_to_message.from_user.id == context.bot.id
+                        update.message.reply_to_message
+                        and update.message.reply_to_message.from_user.id == context.bot.id
                 ):
                     logging.info("Message is a reply to the bot, allowing...")
                 else:
@@ -1065,8 +1070,8 @@ class ChatGPTTelegramBot:
                             continue
 
                     elif (
-                        abs(len(content) - len(prev)) > cutoff
-                        or tokens != "not_finished"
+                            abs(len(content) - len(prev)) > cutoff
+                            or tokens != "not_finished"
                     ):
                         prev = content
 
@@ -1150,8 +1155,8 @@ class ChatGPTTelegramBot:
                 )
                 # add guest chat request to guest usage tracker
                 if (
-                    str(user_id) not in self.config.allowed_user_ids.split(",")
-                    and "guests" in self.usage
+                        str(user_id) not in self.config.allowed_user_ids.split(",")
+                        and "guests" in self.usage
                 ):
                     self.usage["guests"].add_image_request(
                         self.config.image_size, self.config.image_prices
@@ -1214,6 +1219,151 @@ class ChatGPTTelegramBot:
     #             raise ValueError("Invalid user")
     #     pass
 
+    async def handle_payments_callback(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        user_id = update.callback_query.from_user.id
+        query = update.callback_query
+        # Extract plan type from callback data
+        query_data = query.data
+        logging.info(f"this is the call back from the {query_data}")
+        _, payment_selected = query_data.split("|")
+        logging.info(f"the payments {payment_selected}")
+        # clean the name of the payments
+        clean_payment_selected = clean_string(payment_selected)
+        # Fetch plan details from your database or config
+        logging.info(f"the clean payments {clean_payment_selected}")
+        get_image = get_plan_image(clean_payment_selected, config=self.config)
+        logging.info(clean_payment_selected)
+        bot_language = self.config.bot_language
+        # text = get_message_in_language(
+        #     language=lang, message_key="payment_plan", text_format=clean_payment_selected
+        # )
+        # Create the caption for the image
+        payment_info = localized_text(f"payment_{clean_payment_selected}", bot_language)
+        logging.info(f"the payments info {payment_info}")
+        if clean_payment_selected == "libyan-payments" and plans[clean_payment_selected]["price"] is not None:
+            buttons = []
+            for price in plans[clean_payment_selected]["price"]:
+                button_text = (
+                    f"{price} {plans[clean_payment_selected]['currency'][0]}"
+                )
+                buttons.append(
+                    InlineKeyboardButton(
+                        button_text,
+                        callback_data=f"prices|{price}|{clean_payment_selected}",
+                    )
+                )
+            button_rows = [buttons[i: i + 3] for i in range(0, len(buttons), 3)]
+            new_reply_markup = InlineKeyboardMarkup(button_rows)
+            await context.bot.send_photo(
+                chat_id=query.message.chat_id,
+                photo=get_image,
+                caption=payment_info,
+                parse_mode="HTML",
+                reply_markup=new_reply_markup
+            )
+
+        if clean_payment_selected == "crypto" and plans[clean_payment_selected]["price"] is not None:
+            buttons = []
+            for price in plans[clean_payment_selected]["price"]:
+                button_text = (
+                    f"{price} {plans[clean_payment_selected]['currency'][0]}"
+                )
+                buttons.append(
+                    InlineKeyboardButton(
+                        button_text,
+                        callback_data=f"prices|{price}|{clean_payment_selected}",
+                    )
+                )
+
+            # Divide buttons into rows of 3 buttons each
+            button_rows = [buttons[i: i + 3] for i in range(0, len(buttons), 3)]
+            new_reply_markup = InlineKeyboardMarkup(button_rows)
+
+            # Send the image with the caption
+            reply_markup_to_use = (
+                new_reply_markup
+                if isinstance(new_reply_markup, InlineKeyboardMarkup)
+                else None
+            )
+            await context.bot.send_photo(
+                chat_id=query.message.chat_id,
+                photo=get_image,
+                caption=payment_info,
+                parse_mode="HTML",
+                reply_markup=reply_markup_to_use,
+            )
+
+        elif plans[clean_payment_selected]["price"] is None:
+            await context.bot.send_photo(
+                chat_id=query.message.chat_id,
+                photo=get_image,
+                caption=payment_info,
+                parse_mode="HTML",
+            )
+
+            # await context.bot.send_message(
+            #     text=f"{get_message_in_language(language=lang, message_key='send_redeem')}",
+            #     chat_id=query.message.chat_id,
+            # )
+
+    async def pay_the_plane_handle(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        user_id = update.callback_query.from_user.id
+        user_name = update.callback_query.from_user.name
+        query = update.callback_query
+        # Extract plan type from callback data
+        query_data = query.data
+        logging.info(f"this is the all price and plan {query_data}")
+        bot_language = self.config.bot_language
+        payment_link = localized_text("payment_link", bot_language)
+        logging.info(f"the payment link is {payment_link}")
+        _, amount_to_pay, payment_plan = query_data.split("|")
+        if payment_plan == "crypto":
+            url, order_id = payment_switcher(
+                user_id=user_id, payment_plan=amount_to_pay, user_payment_choice=payment_plan, user_name=user_name
+            )
+            if url:
+                caption = f"{payment_link} {amount_to_pay} {plans[payment_plan]['currency'][0]}\n<a href='{url}'>Pay Now</a>"
+
+                text = localized_text("payment_crypto", bot_language)
+                caption += text
+
+                # Send the image with the caption
+                await context.bot.send_message(
+                    chat_id=query.message.chat_id,
+                    text=caption,
+                    parse_mode="HTML",
+                )
+        if payment_plan == "libyan-payments":
+            custom_ref = f"{user_id}-{user_name}-{uuid4()}"
+            data = {
+                "id": "m1k5p8GDobzVrdNgeQ2xqGPR5YOpnv9jKvZJjw670lyME8B1AXkLa4DKmzqXMB6w",
+                "amount": 30.0,
+                "phone": "0914043220",
+                "email": "elmahdi.alagab@gmail.com",
+                "backend_url": "http://0.0.0.0:8300/tlync_callback",
+                "frontend_url": "http://frontend.url",
+                "custom_ref": custom_ref
+            }
+            logging.info(f"this is the request body {data}")
+            logging.info(f"the payment plan is {payment_plan}")
+            res = payment_switcher(user_payment_choice=payment_plan, data=DataBody(**data))
+            logging.info(f"the response of the libyan payments is {res}")
+            if res:
+                if "result" in res:
+                    if res["result"] == "success" and res["custom_re"] == custom_ref:
+                        url = res["url"]
+                        caption = f"{payment_link} {30} {plans[payment_plan]['currency'][0]}\n<a href='{url}'>Pay Now</a>"
+
+                        text = localized_text("payment_libyan-payments", bot_language)
+                        caption += text
+
+                        # Send the image with the caption
+                        await context.bot.send_message(
+                            chat_id=query.message.chat_id,
+                            text=caption,
+                            parse_mode="HTML",
+                        )
+
     async def payment_handle(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         user_id = update.effective_user.id
         bot_language = self.config.bot_language
@@ -1233,7 +1383,7 @@ class ChatGPTTelegramBot:
             )
 
     async def inline_query(
-        self, update: Update, context: ContextTypes.DEFAULT_TYPE
+            self, update: Update, context: ContextTypes.DEFAULT_TYPE
     ) -> None:
         """
         Handle the inline query. This is run when you type: @botusername <query>
@@ -1242,7 +1392,7 @@ class ChatGPTTelegramBot:
         if len(query) < 3:
             return
         if not await self.check_allowed_and_within_budget(
-            update, context, is_inline=True
+                update, context, is_inline=True
         ):
             return
 
@@ -1256,7 +1406,7 @@ class ChatGPTTelegramBot:
         )
 
     async def send_inline_query_result(
-        self, update: Update, result_id, message_content, callback_data=""
+            self, update: Update, result_id, message_content, callback_data=""
     ):
         """
         Send inline query result
@@ -1282,7 +1432,7 @@ class ChatGPTTelegramBot:
                 input_message_content=InputTextMessageContent(message_content),
                 description=message_content,
                 thumb_url="https://user-images.githubusercontent.com/11541888/223106202-7576ff11-2c8e-408d-94ea"
-                "-b02a7a32149a.png",
+                          "-b02a7a32149a.png",
                 reply_markup=reply_markup,
             )
 
@@ -1293,7 +1443,7 @@ class ChatGPTTelegramBot:
             )
 
     async def handle_callback_inline_query(
-        self, update: Update, context: CallbackContext
+            self, update: Update, context: CallbackContext
     ):
         """
         Handle the callback query from the inline query result
@@ -1372,8 +1522,8 @@ class ChatGPTTelegramBot:
                                 continue
 
                         elif (
-                            abs(len(content) - len(prev)) > cutoff
-                            or tokens != "not_finished"
+                                abs(len(content) - len(prev)) > cutoff
+                                or tokens != "not_finished"
                         ):
                             prev = content
                             try:
@@ -1480,7 +1630,7 @@ class ChatGPTTelegramBot:
 
     # TODO check this function
     async def check_allowed_and_within_budget(
-        self, update: Update, context: ContextTypes.DEFAULT_TYPE, is_inline=False
+            self, update: Update, context: ContextTypes.DEFAULT_TYPE, is_inline=False
     ) -> bool:
         """
         Checks if the user is allowed to use the bot and if they are within their budget
@@ -1507,7 +1657,7 @@ class ChatGPTTelegramBot:
             await self.send_disallowed_message(update, context, is_inline)
             return False
         if not await is_within_budget(
-            self.config, self.usage, update, is_inline=is_inline
+                self.config, self.usage, update, is_inline=is_inline
         ):
             logging.warning(f"User {name} (id: {user_id}) reached their usage limit")
             await self.send_budget_reached_message(update, context, is_inline)
@@ -1516,7 +1666,7 @@ class ChatGPTTelegramBot:
         return True
 
     async def send_disallowed_message(
-        self, update: Update, _: ContextTypes.DEFAULT_TYPE, is_inline=False
+            self, update: Update, _: ContextTypes.DEFAULT_TYPE, is_inline=False
     ):
         """
         Sends the disallowed message to the user.
@@ -1534,7 +1684,7 @@ class ChatGPTTelegramBot:
             )
 
     async def send_budget_reached_message(
-        self, update: Update, _: ContextTypes.DEFAULT_TYPE, is_inline=False
+            self, update: Update, _: ContextTypes.DEFAULT_TYPE, is_inline=False
     ):
         """
         Sends the budget reached message to the user.

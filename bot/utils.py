@@ -22,6 +22,7 @@ from telegram.ext import CallbackContext, ContextTypes
 
 from cryptomus_client import CryptomusManager
 from ains_client import RedeemManager
+from tlync_client import TlyncClient, DataBody
 from usage import UsageTracker
 from config import chat_modes, BotConfig, plans
 
@@ -35,8 +36,8 @@ def message_text(message: Message) -> str:
         return ""
 
     for _, text in sorted(
-        message.parse_entities([MessageEntity.BOT_COMMAND]).items(),
-        key=(lambda item: item[0].offset),
+            message.parse_entities([MessageEntity.BOT_COMMAND]).items(),
+            key=(lambda item: item[0].offset),
     ):
         message_txt = message_txt.replace(text, "").strip()
 
@@ -44,7 +45,7 @@ def message_text(message: Message) -> str:
 
 
 async def is_user_in_group(
-    update: Update, context: CallbackContext, user_id: int
+        update: Update, context: CallbackContext, user_id: int
 ) -> bool:
     """
     Checks if user_id is a member of the group
@@ -108,15 +109,15 @@ def split_into_chunks(text: str, chunk_size: int = 4096) -> list[str]:
     """
     Splits a string into chunks of a given size.
     """
-    return [text[i : i + chunk_size] for i in range(0, len(text), chunk_size)]
+    return [text[i: i + chunk_size] for i in range(0, len(text), chunk_size)]
 
 
 async def wrap_with_indicator(
-    update: Update,
-    context: CallbackContext,
-    coroutine,
-    chat_action: constants.ChatAction = "",
-    is_inline=False,
+        update: Update,
+        context: CallbackContext,
+        coroutine,
+        chat_action: constants.ChatAction = "",
+        is_inline=False,
 ):
     """
     Wraps a coroutine while repeatedly sending a chat action to the user.
@@ -136,12 +137,12 @@ async def wrap_with_indicator(
 
 
 async def edit_message_with_retry(
-    context: ContextTypes.DEFAULT_TYPE,
-    chat_id: int | None,
-    message_id: str,
-    text: str,
-    markdown: bool = True,
-    is_inline: bool = False,
+        context: ContextTypes.DEFAULT_TYPE,
+        chat_id: int | None,
+        message_id: str,
+        text: str,
+        markdown: bool = True,
+        is_inline: bool = False,
 ):
     """
     Edit a message with retry logic in case of failure (e.g. broken markdown)
@@ -188,7 +189,7 @@ async def error_handler(_: object, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 
 async def is_allowed(
-    config: BotConfig, update: Update, context: CallbackContext, is_inline=False
+        config: BotConfig, update: Update, context: CallbackContext, is_inline=False
 ) -> bool:
     """
     Checks if the user is allowed to use the bot.
@@ -280,7 +281,7 @@ def get_user_budget(config: BotConfig, user_id) -> float | None:
 
 
 async def get_remaining_budget(
-    config: BotConfig, usage, update: Update, is_inline=False
+        config: BotConfig, usage, update: Update, is_inline=False
 ) -> float:
     """
     Calculate the remaining budget for a user based on their current usage.
@@ -333,7 +334,7 @@ async def get_remaining_budget(
 
 
 async def is_within_budget(
-    config: BotConfig, usage, update: Update, is_inline=False
+        config: BotConfig, usage, update: Update, is_inline=False
 ) -> bool:
     """
     Checks if the user reached their usage limit.
@@ -362,7 +363,7 @@ async def is_within_budget(
 
 
 async def add_chat_request_to_usage_tracker(
-    usage, config: BotConfig, user_id, used_tokens
+        usage, config: BotConfig, user_id, used_tokens
 ):
     """
     Add chat request to usage tracker
@@ -475,7 +476,7 @@ def encode_image(fileobj):
 
 
 def decode_image(imgbase64):
-    image = imgbase64[len("data:image/jpeg;base64,") :]
+    image = imgbase64[len("data:image/jpeg;base64,"):]
     return base64.b64decode(image)
 
 
@@ -486,10 +487,10 @@ def get_paginated_keyboard(page_index):
     chat_mode_keys = list(chat_modes.keys())
     if chat_mode_keys:
         page_chat_mode_keys = chat_mode_keys[
-            page_index
-            * n_chat_modes_per_page : (page_index + 1)
-            * n_chat_modes_per_page
-        ]
+                              page_index
+                              * n_chat_modes_per_page: (page_index + 1)
+                                                       * n_chat_modes_per_page
+                              ]
 
         keyboard = []
         for chat_mode_key in page_chat_mode_keys:
@@ -550,14 +551,14 @@ async def get_payments_buttons():
     text = "Buy Now"
     buttons = []
 
-    for model_key in plans["plan"]:
+    for model_key in plans["methods"]:
         button_text = model_key
         buttons.append(
             InlineKeyboardButton(button_text, callback_data=f"payments|{model_key}")
         )
 
     # Divide buttons into rows of 3 buttons each
-    button_rows = [buttons[i : i + 3] for i in range(0, len(buttons), 3)]
+    button_rows = [buttons[i: i + 3] for i in range(0, len(buttons), 3)]
 
     reply_markup = InlineKeyboardMarkup(button_rows)
     return text, reply_markup
@@ -581,11 +582,12 @@ def extract_user_id(s):
 
 
 def payment_switcher(
-    user_id: int,
-    user_name: str,
-    user_payment_choice: str,
-    payment_plan: str | None = None,
-    redeem_card: str | None = None,
+        user_payment_choice: str,
+        user_id: int | None = None,
+        user_name: str | None = None,
+        payment_plan: str | None = None,
+        redeem_card: str | None = None,
+        data: DataBody | None = None,
 ):
     match user_payment_choice:
         case "crypto":
@@ -599,6 +601,8 @@ def payment_switcher(
                 raise ValueError("the redeem card is missing")
         case "donation":
             return "Sorry it's not available at the moment"
+        case "libyan-payments":
+            return local_payment(data=data)
 
 
 def cryptomus_invoice(user_id: int, user_name: str, payment_plan: str):
@@ -628,3 +632,52 @@ def anis_redeem(redeem_code: str, user_id: int):
     except Exception as e:
         logging.error(f"An error with binance redeem method for some reason: {e}")
         raise
+
+
+def local_payment(data: DataBody):
+    lync_api = TlyncClient(is_test_environment=True)
+    try:
+        resp = lync_api.initiate_payment(data=data)
+        logging.info(f"the reponse is {resp}")
+        return resp
+    except Exception as e:
+        logging.error(f"there is error happened {e}")
+
+
+def clean_string(data):
+    data = data.lower()
+    data = re.sub(r"[ /]", "-", data)
+    emoj = re.compile(
+        "["
+        "\U0001F600-\U0001F64F"  # emoticons
+        "\U0001F300-\U0001F5FF"  # symbols & pictographs
+        "\U0001F680-\U0001F6FF"  # transport & map symbols
+        "\U0001F1E0-\U0001F1FF"  # flags (iOS)
+        "\U00002500-\U00002BEF"  # chinese char
+        "\U00002702-\U000027B0"
+        "\U000024C2-\U0001F251"
+        "\U0001f926-\U0001f937"
+        "\U00010000-\U0010ffff"
+        "\u2640-\u2642"
+        "\u2600-\u2B55"
+        "\u200d"
+        "\u23cf"
+        "\u23e9"
+        "\u231a"
+        "\ufe0f"  # dingbats
+        "\u3030"
+        "]+",
+        re.UNICODE,
+    )
+    return re.sub(emoj, "", data)
+
+
+def get_plan_image(subs_plan: str, config: BotConfig):
+    image = {
+        "crypto": config.crypto_image_path,
+        "libyan-payments": config.libyan_image_path,
+        "anis-usdt": config.anis_image_path,
+        "donation": config.donation_image_path,
+    }
+
+    return image[subs_plan] if subs_plan else None
