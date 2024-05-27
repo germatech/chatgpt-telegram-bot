@@ -79,7 +79,7 @@ class CryptomusManager:
             "sign": signature,
             "Content-Type": "application/json",
         }
-
+        logging.info(f"the clean json {json.dumps(request_body, separators=(',', ':'))}")
         try:
             response = requests.post(
                 endpoint,
