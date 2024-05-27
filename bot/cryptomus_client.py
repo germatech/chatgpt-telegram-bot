@@ -87,6 +87,7 @@ class CryptomusManager:
                 data=json.dumps(request_body, separators=(",", ":")),
                 timeout=timeout,
             )
+            logging.info(f"the error maybe happend here {response.json()}")
             response.raise_for_status()
             data = response.json()
 
