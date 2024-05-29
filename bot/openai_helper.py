@@ -24,25 +24,33 @@ with open(translations_file_path, "r", encoding="utf-8") as f:
     translations = json.load(f)
 
 
-def localized_text(key, bot_language):
+def localized_text(key, bot_language, **formatting: dict | None):
     """
-    Return translated text for a key in specified bot_language.
-    Keys and translations can be found in the translations.json.
+    Return translated text for a key in specified bot_language with placeholders replaced by `formatting`.
+
+    :param key: str - Key to the desired text in the translations.
+    :param bot_language: str - Language code of the bot.
+    :param formatting: dict - Dictionary containing values to replace placeholders.
+    :return: str - Formatted translated text.
     """
     try:
-        return translations[bot_language][key]
+        # Retrieve the text and format it with provided formatting dictionary
+        text = translations[bot_language][key]
+        if isinstance(text, list):
+            return text
+        else:
+            return text.format(**formatting)
     except KeyError:
         logging.warning(
             f"No translation available for bot_language code '{bot_language}' and key '{key}'"
         )
         # Fallback to English if the translation is not available
         if key in translations["en"]:
-            return translations["en"][key]
+            return translations["en"][key].format(**formatting)
         else:
-            logging.warning(
+            logging.error(
                 f"No english definition found for key '{key}' in translations.json"
             )
-            # return key as text
             return key
 
 

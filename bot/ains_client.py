@@ -51,6 +51,7 @@ class RedeemManager:
         if config.env == "true":
             self.base_url = config.test_binance_base_url
             self.binance_api_key = config.test_binance_key
+            self.binance_api_secret = config.test_binance_secret
         else:
             self.base_url = config.binance_base_url
             self.binance_api_key = config.binance_api_key

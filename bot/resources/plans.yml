@@ -19,7 +19,7 @@ crypto:
 anis-usdt:
   currency:
     - USDT
-  price: 15
+  price:
 
 donation:
   currency:

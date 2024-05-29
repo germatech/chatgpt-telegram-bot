@@ -1,8 +1,9 @@
 import asyncio
-import datetime
+import re
 import logging
 import os
 import io
+import time
 
 from uuid import uuid4
 from telegram import BotCommandScopeAllGroupChats, Update, constants
@@ -18,6 +19,7 @@ from telegram.ext import (
     Application,
     ContextTypes,
     CallbackContext,
+    ConversationHandler,
 )
 
 from pydub import AudioSegment
@@ -65,6 +67,7 @@ class ChatGPTTelegramBot:
         self.config = config
         self.openai = openai
         bot_language = self.config.bot_language
+        self.REDEEM_CODE = 0
         self.commands = [
             BotCommand(
                 command="reset",
@@ -127,27 +130,27 @@ class ChatGPTTelegramBot:
         bot_language = self.config.bot_language
 
         start_text = (
-                localized_text("start_description_ar", bot_language)[0]
+                localized_text("start_description", bot_language)[0]
                 + "\n\n"
-                + localized_text("start_description_ar", bot_language)[1]
+                + localized_text("start_description", bot_language)[1]
                 + "\n\n"
-                + localized_text("start_how_to_use_me_ar", bot_language)[0]
+                + localized_text("start_how_to_use_me", bot_language)[0]
                 + "\n"
-                + localized_text("start_how_to_use_me_ar", bot_language)[1]
+                + localized_text("start_how_to_use_me", bot_language)[1]
                 + "\n"
-                + localized_text("start_how_to_use_me_ar", bot_language)[2]
+                + localized_text("start_how_to_use_me", bot_language)[2]
                 + "\n"
-                + localized_text("start_how_to_use_me_ar", bot_language)[3]
+                + localized_text("start_how_to_use_me", bot_language)[3]
                 + "\n"
-                + localized_text("start_how_to_use_me_ar", bot_language)[4]
+                + localized_text("start_how_to_use_me", bot_language)[4]
                 + "\n\n"
-                + localized_text("start_privacy_ar", bot_language)[0]
+                + localized_text("start_privacy", bot_language)[0]
                 + "\n"
-                + localized_text("start_privacy_ar", bot_language)[1]
+                + localized_text("start_privacy", bot_language)[1]
                 + "\n\n"
-                + localized_text("start_lets_start_ar", bot_language)[0]
+                + localized_text("start_lets_start", bot_language)[0]
                 + "\n"
-                + localized_text("start_lets_start_ar", bot_language)[1]
+                + localized_text("start_lets_start", bot_language)[1]
         )
         await update.message.reply_text(start_text, disable_web_page_preview=True)
 
@@ -1175,52 +1178,70 @@ class ChatGPTTelegramBot:
                 parse_mode=constants.ParseMode.MARKDOWN,
             )
 
-    # async def redeem(self, update:Update, context: ContextTypes.DEFAULT_TYPE):
-    #
-    #     redeem_query = message_text(update.message)
-    #     if redeem_query == "":
-    #         await update.effective_message.reply_text(
-    #             message_thread_id=get_thread_id(update),
-    #             text=localized_text("redeem_no_prompt", self.config.bot_language),
-    #         )
-    #         return
-    #
-    #     user = update.message.from_user
-    #     user_id: int = user.id
-    #     ex_user_id: str = ""
-    #     if len(redeem_query) < 16:
-    #         await update.message.reply_text(
-    #             f"your redeem card looks shorter than usual, please try again later"
-    #         )
-    #     elif len(redeem_query) > 16:
-    #         await update.message.reply_text(
-    #             "your redeem card looks longer than usual, please try again later"
-    #         )
-    #     await update.message.reply_text(
-    #         f"your redeem card is {redeem_query}, I will add this balance to {user.first_name} account"
-    #     )
-    #     _, resp = await payment_switcher(
-    #         user_id=user_id, redeem_card=redeem_query, user_payment_choice="anis-usdt"
-    #     )
-    #     # TODO test this really important
-    #     if resp["success"]:
-    #         amount = resp["amount"]
-    #         identity_no = resp["identityNo"]
-    #         match = re.match(r"(\d+)", identity_no.split("-")[0])
-    #         if match:
-    #             if match.group(0) != "redeem":
-    #                 raise ValueError(f"Invalid identity number: {identity_no}")
-    #             ex_user_id = match.group(1)
-    #         logging.info(f"User ID: {ex_user_id}")
-    #         if ex_user_id == user_id:
-    #             await db.update_user_subscription_on_payment(user_id=ex_user_id, amount=amount,
-    #                                                          payment_type="anis-usdt")
-    #         else:
-    #             raise ValueError("Invalid user")
-    #     pass
+    async def redeem(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+        """Prompt user for the redeem code."""
+        await update.message.reply_text(localized_text("redeem_me", self.config.bot_language))
+        return self.REDEEM_CODE
+
+    async def cancel(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Cancel the conversation."""
+        await update.message.reply_text(localized_text("redeem_cancel", self.config.bot_language))
+        return ConversationHandler.END
+
+    async def redeem_callback(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+
+        redeem_query = message_text(update.message)
+        await update.message.reply_text(localized_text("redeem_working_on_it", self.config.bot_language))
+        if redeem_query == "":
+            await update.effective_message.reply_text(
+                message_thread_id=get_thread_id(update),
+                text=localized_text("redeem_no_prompt", self.config.bot_language),
+            )
+            return
+
+        user = update.message.from_user
+        user_id: int = user.id
+        ex_user_id: str = ""
+        if len(redeem_query) < 16:
+            await update.message.reply_text(
+                localized_text("short_redeem_code", self.config.bot_language)
+            )
+            return
+        elif len(redeem_query) > 16:
+            await update.message.reply_text(
+                localized_text("long_redeem_code", self.config.bot_language)
+            )
+            return
+
+        _, resp = await payment_switcher(
+            user_id=user_id, redeem_card=redeem_query, user_payment_choice="anis-usdt"
+        )
+        # TODO test this really important
+        if resp["success"]:
+            place_holder = {'redeem_query': redeem_query, 'username': user.username}
+            await update.message.reply_text(
+                localized_text("prcessing_redeem", self.config.bot_language, **place_holder)
+            )
+            amount = resp["amount"]
+            identity_no = resp["identityNo"]
+            match = re.match(r"(\d+)", identity_no.split("-")[0])
+            if match:
+                if match.group(0) != "redeem":
+                    raise ValueError(f"Invalid identity number: {identity_no}")
+                ex_user_id = match.group(1)
+            logging.info(f"User ID: {ex_user_id}")
+            if ex_user_id == user_id:
+                await self.usage[user_id].add_balance(amount=amount, )
+            else:
+                raise ValueError("Invalid user")
+        else:
+            await update.message.reply_text(
+                f""
+            )
+        return ConversationHandler.END
 
     async def handle_payments_callback(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        user_id = update.callback_query.from_user.id
+        user_username = update.callback_query.from_user.username
         query = update.callback_query
         # Extract plan type from callback data
         query_data = query.data
@@ -1234,32 +1255,43 @@ class ChatGPTTelegramBot:
         get_image = get_plan_image(clean_payment_selected, config=self.config)
         logging.info(clean_payment_selected)
         bot_language = self.config.bot_language
-        # text = get_message_in_language(
-        #     language=lang, message_key="payment_plan", text_format=clean_payment_selected
-        # )
-        # Create the caption for the image
+
         payment_info = localized_text(f"payment_{clean_payment_selected}", bot_language)
         logging.info(f"the payments info {payment_info}")
         if clean_payment_selected == "libyan-payments" and plans[clean_payment_selected]["price"] is not None:
-            buttons = []
-            for price in plans[clean_payment_selected]["price"]:
-                button_text = (
-                    f"{price} {plans[clean_payment_selected]['currency'][0]}"
-                )
-                buttons.append(
-                    InlineKeyboardButton(
-                        button_text,
-                        callback_data=f"prices|{price}|{clean_payment_selected}",
-                    )
-                )
-            button_rows = [buttons[i: i + 3] for i in range(0, len(buttons), 3)]
-            new_reply_markup = InlineKeyboardMarkup(button_rows)
+            # buttons = []
+            # for price in plans[clean_payment_selected]["price"]:
+            #     button_text = (
+            #         f"{price} {plans[clean_payment_selected]['currency'][0]}"
+            #     )
+            #     buttons.append(
+            #         InlineKeyboardButton(
+            #             button_text,
+            #             callback_data=f"prices|{price}|{clean_payment_selected}",
+            #         )
+            #     )
+            # button_rows = [buttons[i: i + 3] for i in range(0, len(buttons), 3)]
+            # new_reply_markup = InlineKeyboardMarkup(button_rows)
+            temporary_info = "Hit the the link to start paying in Libyan currency through various methods (bank card - Pay for me - Mobi Cash - Sadad - Tadawul)"
+            temporary_info_ar = "🔗 اضغط على الرابط لبدء الدفع بالدينار الليبي من خلال الطرق المتعددة (بطاقة البنك - ادفع عني - موبي كاش - سداد - تداول)"
+            user_username_alert = f"Please write your username >> {user_username} << like in the following screenshot"
+            user_username_alert_ar = f" يرجى كتابة اسم المستخدم الخاص بك {user_username} كما هو موضح في الصورة "
+
+            payment_link = "https://test-buyer.tlync.ly/oQV9rwLA4zGML1xmWbgldOn6eP2RVovXJ383qXQD9yKNjB0k7waArJE5YmgPedN0"
+            alert = localized_text("libyan_payment_alert_link", bot_language)
             await context.bot.send_photo(
-                chat_id=query.message.chat_id,
+                chat_id=query.message.chat.id,
                 photo=get_image,
-                caption=payment_info,
+                caption=localized_text("payment_libyan-payments", self.config.bot_language),
                 parse_mode="HTML",
-                reply_markup=new_reply_markup
+                # reply_markup=new_reply_markup
+            )
+            time.sleep(0.5)
+            await context.bot.send_photo(
+                photo=self.config.libyan_payment_example,
+                caption=f"{alert[0]}\n{user_username_alert_ar}\n{alert[1]}\n<a href='{payment_link}'>Pay Now</a>",
+                parse_mode="HTML",
+                chat_id=query.message.chat.id
             )
 
         if clean_payment_selected == "crypto" and plans[clean_payment_selected]["price"] is not None:
@@ -1286,25 +1318,25 @@ class ChatGPTTelegramBot:
                 else None
             )
             await context.bot.send_photo(
-                chat_id=query.message.chat_id,
+                chat_id=query.message.chat.id,
                 photo=get_image,
                 caption=payment_info,
                 parse_mode="HTML",
                 reply_markup=reply_markup_to_use,
             )
 
-        elif plans[clean_payment_selected]["price"] is None:
+        if clean_payment_selected == "anis-usdt" and plans[clean_payment_selected]["price"] is None:
             await context.bot.send_photo(
-                chat_id=query.message.chat_id,
+                chat_id=query.message.chat.id,
                 photo=get_image,
-                caption=payment_info,
+                caption=payment_info[0],
                 parse_mode="HTML",
             )
 
-            # await context.bot.send_message(
-            #     text=f"{get_message_in_language(language=lang, message_key='send_redeem')}",
-            #     chat_id=query.message.chat_id,
-            # )
+            await context.bot.send_message(
+                text=f"{payment_info[1]}",
+                chat_id=query.message.chat.id,
+            )
 
     async def pay_the_plane_handle(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         user_id = update.callback_query.from_user.id
@@ -1329,7 +1361,7 @@ class ChatGPTTelegramBot:
 
                 # Send the image with the caption
                 await context.bot.send_message(
-                    chat_id=query.message.chat_id,
+                    chat_id=query.message.chat.id,
                     text=caption,
                     parse_mode="HTML",
                 )
@@ -1359,7 +1391,7 @@ class ChatGPTTelegramBot:
 
                         # Send the image with the caption
                         await context.bot.send_message(
-                            chat_id=query.message.chat_id,
+                            chat_id=query.message.chat.id,
                             text=caption,
                             parse_mode="HTML",
                         )
