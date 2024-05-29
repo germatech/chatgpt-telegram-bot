@@ -169,6 +169,7 @@ class BotConfig:
         self.binance_api_secret = os.getenv("BINANCE_API_SECRET")
         self.test_binance_base_url = os.getenv("TEST_BINANCE_BASE_URL")
         self.test_binance_key = os.getenv("TEST_BINANCE_KEY")
+        self.test_binance_secret = os.getenv("TEST_BINANCE_SECRET")
 
         self.cryptomus_key = os.getenv("CRYPTOMUS_KEY")
         self.cryptomus_merchant_id = os.getenv("CRYPTOMUS_MERCHANT_ID")
@@ -198,6 +199,9 @@ class BotConfig:
         )
         self.donation_image_path = (
                 Path(__file__).parent.parent.resolve() / "static" / "donation.jpeg"
+        )
+        self.libyan_payment_example = (
+            Path(__file__).parent.parent.resolve() / "static" / "example_libyan_payment.png"
         )
 
     def update_config(self, key, value):

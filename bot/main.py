@@ -9,6 +9,7 @@ from telegram.ext import (
     InlineQueryHandler,
     CallbackQueryHandler,
     filters,
+    ConversationHandler
 )
 from telegram import constants
 from plugin_manager import PluginManager
@@ -59,6 +60,13 @@ def main():
         .concurrent_updates(True)
         .build()
     )
+    conv_handler = ConversationHandler(
+        entry_points=[CommandHandler('redeem', telegram_bot.redeem)],
+        states={
+            telegram_bot.REDEEM_CODE: [MessageHandler(filters.TEXT & ~filters.COMMAND, telegram_bot.redeem_callback)]
+        },
+        fallbacks=[CommandHandler('cancel', telegram_bot.cancel)]
+    )
 
     # Add all the handlers as in the run method
     application.add_handler(CommandHandler("reset", telegram_bot.reset))
@@ -77,6 +85,7 @@ def main():
             filters=filters.ChatType.GROUP | filters.ChatType.SUPERGROUP,
         )
     )
+    application.add_handler(conv_handler)
     application.add_handler(
         MessageHandler(filters.PHOTO | filters.Document.IMAGE, telegram_bot.vision)
     )
