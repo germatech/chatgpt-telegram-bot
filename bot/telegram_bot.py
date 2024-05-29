@@ -1277,7 +1277,7 @@ class ChatGPTTelegramBot:
             user_username_alert = f"Please write your username >> {user_username} << like in the following screenshot"
             user_username_alert_ar = f" يرجى كتابة اسم المستخدم الخاص بك {user_username} كما هو موضح في الصورة "
 
-            payment_link = "https://test-buyer.tlync.ly/oQV9rwLA4zGML1xmWbgldOn6eP2RVovXJ383qXQD9yKNjB0k7waArJE5YmgPedN0"
+            payment_link = "https://tlync.pay.net.ly/n2KQPY5bb4GezLDmMxrwRkvyBdJpqV9ABwZajoE2nO08l1gKAXP5Y7Q6NdGALaMR"
             alert = localized_text("libyan_payment_alert_link", bot_language)
             await context.bot.send_photo(
                 chat_id=query.message.chat.id,
