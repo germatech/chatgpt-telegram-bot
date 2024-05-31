@@ -1333,14 +1333,15 @@ class ChatGPTTelegramBot:
             await context.bot.send_photo(
                 chat_id=query.message.chat.id,
                 photo=get_image,
-                caption=payment_info[0],
+                caption=localized_text("coming_soon", self.config.bot_language),
                 parse_mode="HTML",
             )
 
-            await context.bot.send_message(
-                text=f"{payment_info[1]}",
-                chat_id=query.message.chat.id,
-            )
+            # await context.bot.send_message(
+            #     text=f"{payment_info[1]}",
+            #     chat_id=query.message.chat.id,
+            # )
+
 
     async def pay_the_plane_handle(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         user_id = update.callback_query.from_user.id

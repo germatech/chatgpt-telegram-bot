@@ -1,4 +1,5 @@
-methods: ["🇱🇾Libyan Payments", "💎Crypto", "💰Anis USDT", "❤️‍🩹Donation"]
+methods: ["🇱🇾Libyan Payments", "💎Crypto", "💰Anis USDT"]
+#"❤️‍🩹Donation"
 
 libyan-payments:
   currency:
@@ -21,7 +22,7 @@ anis-usdt:
     - USDT
   price:
 
-donation:
-  currency:
-    - USDT
-  price: null
+#donation:
+#  currency:
+#    - USDT
+#  price:
