@@ -701,7 +701,7 @@ class UsageTracker:
         :param status: The status of the payment, default is 'active'.
         """
         # Insert into payments table
-        self.supabase.table("payments").insert(
+        resp = self.supabase.table("payments").insert(
             {
                 "user_id": self.user_id,
                 "amount": amount,
@@ -710,6 +710,10 @@ class UsageTracker:
                 "status": status,
             }
         ).execute()
+        if resp.data:
+            return resp.data[0]
+        else:
+            return None
 
     def get_balance(self, status="active"):
         """

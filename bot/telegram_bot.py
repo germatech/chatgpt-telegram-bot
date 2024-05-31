@@ -1231,7 +1231,11 @@ class ChatGPTTelegramBot:
                 ex_user_id = match.group(1)
             logging.info(f"User ID: {ex_user_id}")
             if ex_user_id == user_id:
-                await self.usage[user_id].add_balance(amount=amount, )
+                resp = self.usage[user_id].add_balance(amount=amount, payment_method="anis-usdt")
+                if resp:
+                    await update.message.reply_text(
+                        localized_text("success_redeem", bot_language=self.config.bot_language)
+                    )
             else:
                 raise ValueError("Invalid user")
         else:
