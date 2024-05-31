@@ -754,6 +754,8 @@ class UsageTracker:
         balance = self.get_balance()
         logging.info(f"the token usage in dollar {token_usage_in_dollar}")
         remaining_balance = balance["amount"] - token_usage_in_dollar
+        if remaining_balance < 0:
+            remaining_balance = 0.0
         data = (
             self.supabase.table("payments")
             .update({"amount": remaining_balance})

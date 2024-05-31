@@ -1236,7 +1236,7 @@ class ChatGPTTelegramBot:
                 raise ValueError("Invalid user")
         else:
             await update.message.reply_text(
-                f""
+                localized_text("not_success_redeem", bot_language=self.config.bot_language)
             )
         return ConversationHandler.END
 
