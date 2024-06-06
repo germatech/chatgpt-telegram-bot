@@ -632,7 +632,7 @@ def anis_redeem(redeem_code: str, user_id: int):
 
 
 def local_payment(data: DataBody):
-    lync_api = TlyncClient(is_test_environment=True)
+    lync_api = TlyncClient()
     try:
         resp = lync_api.initiate_payment(data=data)
         logging.info(f"the reponse is {resp}")
