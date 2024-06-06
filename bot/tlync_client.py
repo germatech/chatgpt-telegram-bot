@@ -20,7 +20,7 @@ class DataBody(BaseModel):
 
 
 class TlyncClient:
-    def __init__(self, is_test_environment=True):
+    def __init__(self, is_test_environment=False):
         self.test_url = config.tlync_test_base_url
         self.live_url = config.tlync_base_url
         self.base_url = self.test_url if is_test_environment else self.live_url
