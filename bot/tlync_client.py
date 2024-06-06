@@ -23,7 +23,7 @@ class TlyncClient:
     def __init__(self):
         self.test_url = config.tlync_test_base_url
         self.live_url = config.tlync_base_url
-        self.base_url = self.test_url if config.env else self.live_url
+        self.base_url = self.live_url
         self.token = config.tlync_token
         self.headers = {
             "Accept": "application/json",
