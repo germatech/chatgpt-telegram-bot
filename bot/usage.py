@@ -46,7 +46,7 @@ class UsageTracker:
                 {"user_id": self.user_id, "user_name": self.user_name}
             ).execute()
 
-            self.add_balance(status="active", amount=0.5, total_payment=0.5, payment_method="free-plan")
+            self.add_balance(status="active", amount=1, total_payment=1, payment_method="free-plan")
 
         # Initialize or fetch current cost from 'current_costs' table
         self.current_cost = self.initialize_or_fetch_current_cost()
@@ -384,7 +384,7 @@ class UsageTracker:
             if tts_model not in tts_characters:
                 tts_characters[tts_model] = {}
             tts_characters[tts_model][today] = (
-                tts_characters[tts_model].get(today, 0) + text_length
+                    tts_characters[tts_model].get(today, 0) + text_length
             )
             self.add_current_costs(tts_cost)
             # update the user balance
@@ -544,12 +544,12 @@ class UsageTracker:
         }
 
     def initialize_all_time_cost(
-        self,
-        tokens_price=0.03,
-        image_prices="0.016,0.018,0.08",
-        minute_price=0.006,
-        vision_token_price=0.03,
-        tts_prices="0.015,0.030",
+            self,
+            tokens_price=0.03,
+            image_prices="0.016,0.018,0.08",
+            minute_price=0.006,
+            vision_token_price=0.03,
+            tts_prices="0.015,0.030",
     ):
         """
         Calculate total USD amount of all requests in history from the database.
@@ -599,14 +599,14 @@ class UsageTracker:
             [
                 sum(tts_model.values()) * price / 1000
                 for tts_model, price in zip(
-                    usage_history["tts_characters"].values(), tts_prices_list
-                )
+                usage_history["tts_characters"].values(), tts_prices_list
+            )
             ]
         )
 
         # Sum all costs
         all_time_cost = (
-            token_cost + image_cost + transcription_cost + vision_cost + tts_cost
+                token_cost + image_cost + transcription_cost + vision_cost + tts_cost
         )
         return all_time_cost
 
@@ -693,12 +693,13 @@ class UsageTracker:
         else:
             return None
 
-    def add_balance(self, amount: float, payment_method, total_payment,status="active"):
+    def add_balance(self, amount: float, payment_method, total_payment, status="active"):
         """
         Adds a balance to the user's account and records the transaction in the 'payments' table.
         :param amount: The amount of money being added.
         :param payment_method: The payment method used for the transaction.
         :param status: The status of the payment, default is 'active'.
+        :param total_payment: how much is the budget
         """
         # Insert into payments table
         resp = self.supabase.table("payments").insert(
@@ -714,6 +715,9 @@ class UsageTracker:
             return resp.data[0]
         else:
             return None
+
+    def update_balance(self, amount, total_payment):
+        pass
 
     def get_balance(self, status="active"):
         """
@@ -781,4 +785,3 @@ class UsageTracker:
             return user_budget.data[0]
         else:
             return None
-

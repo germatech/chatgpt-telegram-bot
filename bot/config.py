@@ -182,6 +182,8 @@ class BotConfig:
         self.tlync_token = os.getenv("TLYNC_TOKEN")
         self.tlync_storid = os.getenv("TLYNC_STORE_ID")
 
+        self.supabase_tlync_webhook = os.getenv("SUPABASE_TLYNC_CALBACK")
+
         self.crypto_image_path = (
                 Path(__file__).parent.parent.resolve() / "static" / "crypto.png"
         )

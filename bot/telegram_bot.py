@@ -1267,39 +1267,32 @@ class ChatGPTTelegramBot:
         payment_info = localized_text(f"payment_{clean_payment_selected}", bot_language)
         logging.info(f"the payments info {payment_info}")
         if clean_payment_selected == "libyan-payments" and plans[clean_payment_selected]["price"] is not None:
-            # buttons = []
-            # for price in plans[clean_payment_selected]["price"]:
-            #     button_text = (
-            #         f"{price} {plans[clean_payment_selected]['currency'][0]}"
-            #     )
-            #     buttons.append(
-            #         InlineKeyboardButton(
-            #             button_text,
-            #             callback_data=f"prices|{price}|{clean_payment_selected}",
-            #         )
-            #     )
-            # button_rows = [buttons[i: i + 3] for i in range(0, len(buttons), 3)]
-            # new_reply_markup = InlineKeyboardMarkup(button_rows)
-            temporary_info = "Hit the the link to start paying in Libyan currency through various methods (bank card - Pay for me - Mobi Cash - Sadad - Tadawul)"
-            temporary_info_ar = "🔗 اضغط على الرابط لبدء الدفع بالدينار الليبي من خلال الطرق المتعددة (بطاقة البنك - ادفع عني - موبي كاش - سداد - تداول)"
-            user_username_alert = f"Please write your username >> {user_username} << like in the following screenshot"
+            buttons = []
+            for price in plans[clean_payment_selected]["price"]:
+                button_text = (
+                    f"{price} {plans[clean_payment_selected]['currency'][0]}"
+                )
+                buttons.append(
+                    InlineKeyboardButton(
+                        button_text,
+                        callback_data=f"prices|{price}|{clean_payment_selected}",
+                    )
+                )
+            button_rows = [buttons[i: i + 3] for i in range(0, len(buttons), 3)]
+            new_reply_markup = InlineKeyboardMarkup(button_rows)
+            # temporary_info = "Hit the the link to start paying in Libyan currency through various methods (bank card - Pay for me - Mobi Cash - Sadad - Tadawul)"
+            # temporary_info_ar = "🔗 اضغط على الرابط لبدء الدفع بالدينار الليبي من خلال الطرق المتعددة (بطاقة البنك - ادفع عني - موبي كاش - سداد - تداول)"
+            # user_username_alert = f"Please write your username >> {user_username} << like in the following screenshot"
             user_username_alert_ar = f" يرجى كتابة اسم المستخدم الخاص بك {user_username} كما هو موضح في الصورة "
 
-            payment_link = "https://tlync.pay.net.ly/n2KQPY5bb4GezLDmMxrwRkvyBdJpqV9ABwZajoE2nO08l1gKAXP5Y7Q6NdGALaMR"
+            # payment_link = "https://tlync.pay.net.ly/n2KQPY5bb4GezLDmMxrwRkvyBdJpqV9ABwZajoE2nO08l1gKAXP5Y7Q6NdGALaMR"
             alert = localized_text("libyan_payment_alert_link", bot_language)
             await context.bot.send_photo(
                 chat_id=query.message.chat.id,
                 photo=get_image,
                 caption=localized_text("payment_libyan-payments", self.config.bot_language),
                 parse_mode="HTML",
-                # reply_markup=new_reply_markup
-            )
-            time.sleep(0.5)
-            await context.bot.send_photo(
-                photo=self.config.libyan_payment_example,
-                caption=f"{alert[0]}\n{user_username_alert_ar}\n{alert[1]}\n<a href='{payment_link}'>Pay Now</a>",
-                parse_mode="HTML",
-                chat_id=query.message.chat.id
+                reply_markup=new_reply_markup
             )
 
         if clean_payment_selected == "crypto" and plans[clean_payment_selected]["price"] is not None:
@@ -1347,7 +1340,6 @@ class ChatGPTTelegramBot:
             #     chat_id=query.message.chat.id,
             # )
 
-
     async def pay_the_plane_handle(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         user_id = update.callback_query.from_user.id
         user_name = update.callback_query.from_user.name
@@ -1376,25 +1368,26 @@ class ChatGPTTelegramBot:
                     parse_mode="HTML",
                 )
         if payment_plan == "libyan-payments":
-            custom_ref = f"{user_id}-{user_name}-{uuid4()}"
+            custom_ref = f"{user_id}-{uuid4()}"
             data = {
-                "id": "m1k5p8GDobzVrdNgeQ2xqGPR5YOpnv9jKvZJjw670lyME8B1AXkLa4DKmzqXMB6w",
-                "amount": 30.0,
-                "phone": "0914043220",
-                "email": "elmahdi.alagab@gmail.com",
-                "backend_url": "http://0.0.0.0:8300/tlync_callback",
+                "id": self.config.tlync_storid,
+                "amount": amount_to_pay,
+                "phone": "0910000000",
+                "email": "text@email.com",
+                "backend_url": self.config.supabase_tlync_webhook,
                 "frontend_url": "http://frontend.url",
                 "custom_ref": custom_ref
             }
             logging.info(f"this is the request body {data}")
             logging.info(f"the payment plan is {payment_plan}")
             res = payment_switcher(user_payment_choice=payment_plan, data=DataBody(**data))
-            logging.info(f"the response of the libyan payments is {res}")
-            if res:
-                if "result" in res:
-                    if res["result"] == "success" and res["custom_re"] == custom_ref:
-                        url = res["url"]
-                        caption = f"{payment_link} {30} {plans[payment_plan]['currency'][0]}\n<a href='{url}'>Pay Now</a>"
+            logging.info(f"the response of the libyan payments is {res.json()}")
+            res_body = res.json()
+            if res_body:
+                if "result" in res_body:
+                    if res_body["result"] == "success" and res_body["custom_ref"] == custom_ref:
+                        url = res_body["url"]
+                        caption = f"{payment_link} {amount_to_pay} {plans[payment_plan]['currency'][0]}\n<a href='{url}'>Pay Now</a>"
 
                         text = localized_text("payment_libyan-payments", bot_language)
                         caption += text

@@ -2,6 +2,7 @@ import requests
 import logging
 from config import BotConfig
 from pydantic import BaseModel
+from urllib.parse import urlencode
 import json
 
 
@@ -22,7 +23,7 @@ class TlyncClient:
     def __init__(self, is_test_environment=True):
         self.test_url = config.tlync_test_base_url
         self.live_url = config.tlync_base_url
-        self.base_url = config.tlync_test_base_url
+        self.base_url = self.test_url if is_test_environment else self.live_url
         self.token = config.tlync_token
         self.headers = {
             "Accept": "application/json",
@@ -31,14 +32,14 @@ class TlyncClient:
         }
 
     def handle_request(self, method, endpoint, data=None):
-        url = self.live_url + endpoint
+        url = self.base_url + endpoint
         try:
             logging.info(f"the url used is {url}")
             if method == "GET":
                 response = requests.get(url, headers=self.headers)
             else:
                 logging.info(f"the method is {method}")
-                response = requests.post(url, json=data, headers=self.headers)
+                response = requests.post(url, data=urlencode(data), headers=self.headers)
                 logging.info(f"the original resp is {response}")
             response.raise_for_status()
             return response
