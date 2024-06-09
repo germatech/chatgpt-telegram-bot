@@ -317,7 +317,7 @@ async def get_remaining_budget(
     # user_budget = get_user_budget(config, user_id)
     user_budget = usage[user_id].get_balance(status="active")
     if user_budget["amount"] <= 0:
-        raise ValueError("no budget to use the bot")
+        return 0.0
     budget_period = config.budget_period
     if user_budget is not None:
         return user_budget["amount"]
